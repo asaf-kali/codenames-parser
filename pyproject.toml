@@ -1,0 +1,136 @@
+# Poetry
+
+[tool.poetry]
+name = "codenames-parser"
+version = "0.1.0"
+description = "Codenames board game pictures parsers."
+authors = ["Asaf Kali <asaf.kali@mail.huji.ac.il>"]
+readme = "README.md"
+include = ["CHANGELOG.md"]
+
+[tool.poetry.urls]
+Homepage = "https://github.com/asaf-kali/codenames-parser"
+Repository = "https://github.com/asaf-kali/codenames-parser"
+Issues = "https://github.com/asaf-kali/codenames-parser/issues"
+
+[tool.poetry.dependencies]
+# Core
+python = "^3.12"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2"
+coverage = "^7.2"
+pytest-retry = "^1.6"
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.1"
+black = "^23.3"
+isort = "^5.12"
+mypy = "^1.2"
+pylint = "^3.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.2.2"
+twine = "^4.0.2"
+python-semantic-release = "^8.0.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Release
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+commit_parser = "emoji"
+build_command = "make build"
+commit_author = "Semantic release <semantic-release>"
+commit_message = "🤖 Release [{version}] [skip ci]"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.dev]
+match = ".*"
+prerelease = true
+prerelease_token = "dev"
+
+[tool.semantic_release.commit_parser_options]
+major_tags = [
+    "💥",
+    "🚀",
+    "🎉",
+]
+minor_tags = [
+    "✨",
+    "🔥",
+    "🐲",
+]
+patch_tags = [
+    "📝",
+    "📜",
+    "🏗️",
+    "🛠️",
+    "🐛",
+    "🚑",
+    "📌",
+    "🌴",
+]
+
+# Test
+
+[tool.pytest.ini_options]
+retries = 3
+addopts = "-s --disable-pytest-warnings --junitxml=junit.xml"
+
+[tool.coverage.run]
+source = ["codenames_parser", "tests"]
+omit = ["venv"]
+
+# Lint
+
+[tool.ruff]
+line-length = 120
+select = ["B", "C", "E", "F", "W"]
+ignore = []
+exclude = ["local", "venv"]
+
+[tool.black]
+line-length = 120
+exclude = "venv"
+
+[tool.isort]
+skip = ["__init__.py", "venv"]
+profile = "black"
+
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ["build", "dist", "venv", "playground"]
+
+[tool.pylint]
+max-line-length = 120
+good-names = [
+    "by",
+    "e",
+    "i",
+    "n",
+    "x",
+]
+disable = [
+    "C0114",
+#    "C0115",
+#    "C0116",
+#    "R0801",
+#    "R0903",
+#    "W1203",
+#    "fixme",
+#    "too-many-arguments",
+#    "too-many-public-methods",
+#    "too-many-return-statements",
+#    "too-many-locals",
+]
+#extension-pkg-allow-list = ["pydantic"]
+
+[tool.pylint.MASTER]
+#ignore-paths = '^codenames/online/namecoding/.*$'
