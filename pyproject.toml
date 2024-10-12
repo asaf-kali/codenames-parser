@@ -16,6 +16,8 @@ Issues = "https://github.com/asaf-kali/codenames-parser/issues"
 [tool.poetry.dependencies]
 # Core
 python = "^3.12"
+numpy = "^2.1.2"
+opencv-python = "^4.10.0.84"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
