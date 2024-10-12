@@ -3,6 +3,8 @@ from typing import List
 import cv2
 import numpy as np
 
+from codenames_parser.debugging.util import save_debug_image
+
 
 def classify_cell_colors(cells: List[List[np.ndarray]]) -> List[List[str]]:
     """
@@ -18,6 +20,7 @@ def classify_cell_colors(cells: List[List[np.ndarray]]) -> List[List[str]]:
     for row_cells in cells:
         row_colors = []
         for cell in row_cells:
+            save_debug_image(cell, "cell")
             color = detect_dominant_color(cell)
             row_colors.append(color)
         color_names.append(row_colors)

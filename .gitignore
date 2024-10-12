@@ -4,6 +4,8 @@ media/
 exports/
 debug/
 junit.xml
+data/
+debug/
 
 # Language data files
 language_data/*.bin

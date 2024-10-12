@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from codenames_parser.debugging.util import save_debug_image
+
 
 def correct_perspective(image: np.ndarray) -> np.ndarray:
     """
@@ -37,6 +39,7 @@ def correct_perspective(image: np.ndarray) -> np.ndarray:
 
     # Get the top-down view of the board
     warped = four_point_transform(image, board_contour.reshape(4, 2))
+    save_debug_image(warped, title="Perspective Correction")
     return warped
 
 
