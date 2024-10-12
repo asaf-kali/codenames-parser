@@ -1,12 +1,9 @@
-from typing import List
-
 from codenames_parser.color_detection import classify_cell_colors
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
-from codenames_parser.perspective_correction import correct_perspective
 
 
-def main(image_path: str) -> List[List[str]]:
+def main(image_path: str) -> list[list[str]]:
     """
     Main function to process the Codenames board image.
 
@@ -14,13 +11,11 @@ def main(image_path: str) -> List[List[str]]:
         image_path (str): Path to the input image.
 
     Returns:
-        List[List[str]]: A 5x5 grid representing the colors of the cells.
+        list[list[str]]: A 5x5 grid representing the colors of the cells.
     """
     image = read_image(image_path)
-    corrected_image = correct_perspective(image)
-    cells = extract_cells(corrected_image)
+    cells = extract_cells(image)
     grid_colors = classify_cell_colors(cells)
-
     return grid_colors
 
 

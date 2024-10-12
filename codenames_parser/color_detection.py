@@ -1,26 +1,21 @@
-from typing import List
-
 import cv2
 import numpy as np
 
-from codenames_parser.debugging.util import save_debug_image
 
-
-def classify_cell_colors(cells: List[List[np.ndarray]]) -> List[List[str]]:
+def classify_cell_colors(cells: list[list[np.ndarray]]) -> list[list[str]]:
     """
     Classifies the color of each cell.
 
     Args:
-        cells (List[List[np.ndarray]]): A 2D list of cell images.
+        cells (list[list[np.ndarray]]): A 2D list of cell images.
 
     Returns:
-        List[List[str]]: A 2D list of color names corresponding to each cell.
+        list[list[str]]: A 2D list of color names corresponding to each cell.
     """
     color_names = []
     for row_cells in cells:
         row_colors = []
         for cell in row_cells:
-            save_debug_image(cell, "cell")
             color = detect_dominant_color(cell)
             row_colors.append(color)
         color_names.append(row_colors)
@@ -29,8 +24,8 @@ def classify_cell_colors(cells: List[List[np.ndarray]]) -> List[List[str]]:
 
 def detect_dominant_color(cell: np.ndarray) -> str:
     """
-    Detects the dominant color in a cell.
-
+    Detects the dominant color in a cell:
+    1.
     Args:
         cell (np.ndarray): The cell image.
 
@@ -56,7 +51,7 @@ def detect_dominant_color(cell: np.ndarray) -> str:
     # Average saturation and value to detect black
     avg_saturation = hsv_cell[:, :, 1].mean()
     avg_value = hsv_cell[:, :, 2].mean()
-    if avg_value < 50 and avg_saturation < 50:
+    if avg_value < 30 and avg_saturation < 30:
         return "black"
 
     for color_name, ranges in color_ranges.items():
