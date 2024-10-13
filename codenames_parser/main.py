@@ -19,6 +19,7 @@ def main(image_path: str) -> list[list[str]]:
         list[list[str]]: A 5x5 grid representing the colors of the cells.
     """
     image = read_image(image_path)
+    # TODO: Downscale the image to a smaller size to speed up processing
     aligned_image = align_image(image)
     cropped = crop_image(aligned_image)
     cells = extract_cells(cropped)
