@@ -94,15 +94,26 @@ def _get_grid_lines(lines: list[Line]) -> GridLines:
     for line in lines:
         if _is_horizontal_line(line):
             horizontal.append(line)
-        else:
+        elif _is_vertical_line(line):
             vertical.append(line)
+        else:
+            log.debug(f"Skipping non-grid line: {line}")
     return GridLines(horizontal=horizontal, vertical=vertical)
 
 
 def _is_horizontal_line(line: Line) -> bool:
-    if line.theta < np.pi / 4 or line.theta > 3 * np.pi / 4:
-        return True
-    return False
+    diff = _horizontal_diff(line.theta)
+    return _is_grid_line(diff)
+
+
+def _is_vertical_line(line: Line) -> bool:
+    diff = _vertical_diff(line.theta)
+    return _is_grid_line(diff)
+
+
+def _is_grid_line(diff: float) -> bool:
+    diff_degrees = np.degrees(diff)
+    return abs(diff_degrees) < 20
 
 
 def blur_image(image: np.ndarray) -> np.ndarray:
