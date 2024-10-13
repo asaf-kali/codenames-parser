@@ -62,10 +62,14 @@ def _get_line_draw_params(line: Line) -> P1P2:
     return P1P2(p1, p2)
 
 
+COLOR_1 = np.array([20, 200, 20])
+COLOR_2 = np.array([200, 20, 200])
+
+
 def _pick_line_color(line: Line) -> Color:
-    red = np.sin(line.theta)
-    blue = 1 - red
-    color = 200 * np.array([blue, 0, red])
+    color_1 = np.sin(line.theta)
+    color_2 = 1 - color_1
+    color: np.ndarray = color_1 * COLOR_1 + color_2 * COLOR_2
     random_offset = np.random.randint(0, 50, 3)
     color += random_offset
     rounded = np.round(color)

@@ -31,6 +31,7 @@ def align_image(image: np.ndarray) -> np.ndarray:
         image = result.aligned_image
         rho /= 1.2
         max_angle /= 4
+        count += 1
     log.info("Image alignment completed")
     return image
 
