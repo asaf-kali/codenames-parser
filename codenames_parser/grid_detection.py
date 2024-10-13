@@ -224,9 +224,16 @@ def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
 
 def _find_rotation_angle(lines: list[Line]) -> float:
     grid_lines = _get_grid_lines(lines)
-    horizontal_angle = np.mean([abs(line.theta - np.pi / 2) for line in grid_lines.horizontal])
-    vertical_angle = np.mean([min(line.theta, np.pi - line.theta) for line in grid_lines.vertical])
-    angle = (horizontal_angle + vertical_angle) / 2
+    sum = count = 0
+    if grid_lines.horizontal:
+        sum += np.mean([abs(line.theta - np.pi / 2) for line in grid_lines.horizontal])
+        count += 1
+    if grid_lines.vertical:
+        sum += np.mean([min(line.theta, np.pi - line.theta) for line in grid_lines.vertical])
+        count += 1
+    if count == 0:
+        return 0
+    angle = sum / count
     angle_degrees = -np.degrees(angle)
     return angle_degrees
 
