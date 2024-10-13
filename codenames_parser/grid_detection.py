@@ -1,11 +1,11 @@
 import logging
-from typing import NamedTuple
 
 import cv2
 import numpy as np
 
-from codenames_parser.debugging.util import save_debug_image
-from codenames_parser.models import P1P2, Color, GridLines, Line, Point
+from codenames_parser.align import align_image, blur_image, detect_edges, extract_lines
+from codenames_parser.debugging.util import draw_lines, save_debug_image
+from codenames_parser.models import Line
 
 log = logging.getLogger(__name__)
 
@@ -25,33 +25,17 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     Returns:
         list[np.ndarray]: A list of cell images.
     """
-    aligned_image = _align_image(image)
-    blurred = _blur_image(aligned_image)
-    edges = _detect_edges(blurred)
-    lines = _extract_lines(edges, rho=0.2)
-    _draw_lines(aligned_image, lines, title="lines_after_alignment")
+    aligned_image = align_image(image)
+    blurred = blur_image(aligned_image)
+    edges = detect_edges(blurred)
+    lines = extract_lines(edges, rho=0.2)
+    draw_lines(aligned_image, lines, title="lines_after_alignment")
     # lines_filtered = _cluster_and_merge_lines(lines, blurred)
     # _draw_lines(blurred, lines_filtered, title="filtered lines")
     # intersections = _find_intersections(lines)
     # _draw_intersections(aligned_image, intersections)
     # cells = _extract_cells(aligned_image, lines_filtered)
     return []
-
-
-def _blur_image(image: np.ndarray) -> np.ndarray:
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Apply Gaussian blur
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    save_debug_image(blurred, title="blurred")
-    return blurred
-
-
-def _detect_edges(image: np.ndarray) -> np.ndarray:
-    # Edge detection
-    edges = cv2.Canny(image, 50, 150)
-    save_debug_image(edges, title="edges")
-    return edges
 
 
 def _extract_squares(image: np.ndarray) -> list[np.ndarray]:
@@ -82,21 +66,8 @@ def _extract_squares(image: np.ndarray) -> list[np.ndarray]:
             save_debug_image(rect, title=f"square_{count}")
             squares.append(rect)
             count += 1
-    _draw_squares(image, squares)
+    # draw_squares(image, squares)
     return squares
-
-
-def _extract_lines(edges: np.ndarray, rho: float = 1, theta: float = np.pi / 180, threshold: int = 100) -> list[Line]:
-    # Find lines using Hough transform
-    hough_lines = cv2.HoughLines(edges, rho=rho, theta=theta, threshold=threshold)
-    if hough_lines is None:
-        return []
-    lines = []
-    for line in hough_lines:
-        rho, theta = line[0]
-        line = Line(rho, theta)
-        lines.append(line)
-    return lines
 
 
 def _cluster_and_merge_lines(lines: list[Line], image: np.ndarray | None) -> list[Line]:
@@ -125,134 +96,6 @@ def _cluster_and_merge_lines(lines: list[Line], image: np.ndarray | None) -> lis
         line = Line(rho, theta)
         merged_lines.append(line)
     return merged_lines
-
-
-def _draw_lines(image: np.ndarray, lines: list[Line], title: str) -> np.ndarray:
-    # If image is grayscale, convert to BGR
-    if len(image.shape) == 2:
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-    for line in lines:
-        loc = _get_line_draw_params(line)
-        color = _pick_line_color(line)
-        cv2.line(image, loc.p1, loc.p2, color, 2)
-    save_debug_image(image, title=title)
-    return image
-
-
-def _draw_squares(image: np.ndarray, squares: list[np.ndarray]) -> np.ndarray:
-    for square in squares:
-        cv2.rectangle(image, (0, 0), (square.shape[1], square.shape[0]), (0, 255, 0), 2)
-    save_debug_image(image, title="squares")
-    return image
-
-
-def _pick_line_color(line: Line) -> Color:
-    red = np.sin(line.theta)
-    blue = 1 - red
-    color = 200 * np.array([blue, 0, red])
-    random_offset = np.random.randint(0, 50, 3)
-    color += random_offset
-    rounded = np.round(color)
-    return Color(*rounded.tolist())
-
-
-def _get_line_draw_params(line: Line) -> P1P2:
-    SIZE = 1000
-    rho, theta = line
-    a = np.cos(theta)
-    b = np.sin(theta)
-    x0 = a * rho
-    y0 = b * rho
-    x1 = int(x0 + SIZE * (-b))
-    x2 = int(x0 - SIZE * (-b))
-    y1 = int(y0 + SIZE * (a))
-    y2 = int(y0 - SIZE * (a))
-    p1 = Point(x1, y1)
-    p2 = Point(x2, y2)
-    return P1P2(p1, p2)
-
-
-def _align_image(image: np.ndarray) -> np.ndarray:
-    rho = 1
-    while True:
-        result = _align_image_iteration(image, rho=rho)
-        image = result.image
-        if result.line_count < 10:
-            break
-        rho /= 1.5
-    save_debug_image(image, title="aligned_final")
-    return image
-
-
-class AlignmentResult(NamedTuple):
-    image: np.ndarray
-    line_count: int
-
-
-def _align_image_iteration(image: np.ndarray, rho: float) -> AlignmentResult:
-    blurred = _blur_image(image)
-    edges = _detect_edges(blurred)
-    lines = _extract_lines(edges, rho=rho)
-    if not lines:
-        return AlignmentResult(image, 0)
-    _draw_lines(blurred, lines, title="lines_before_rotate")
-    angle_degrees = _find_rotation_angle(lines)
-    log.info(f"Rotation angle: {angle_degrees}")
-    aligned_image = _rotate_by(image, angle_degrees)
-    save_debug_image(aligned_image, title="aligned")
-    return AlignmentResult(aligned_image, len(lines))
-
-
-def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
-    # Get the image center and dimensions
-    h, w = image.shape[:2]
-    center = (w / 2, h / 2)
-    # Compute the rotation matrix
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle_degrees, 1)
-    # Calculate the new bounding dimensions of the rotated image
-    cos_angle = np.abs(rotation_matrix[0, 0])
-    sin_angle = np.abs(rotation_matrix[0, 1])
-    new_w = int(h * sin_angle + w * cos_angle)
-    new_h = int(h * cos_angle + w * sin_angle)
-    # Adjust the rotation matrix to take into account the translation
-    rotation_matrix[0, 2] += (new_w / 2) - center[0]
-    rotation_matrix[1, 2] += (new_h / 2) - center[1]
-    # Apply the warp affine with the new dimensions to preserve all pixels
-    aligned_image = cv2.warpAffine(image, rotation_matrix, (new_w, new_h))
-    return aligned_image
-
-
-def _find_rotation_angle(lines: list[Line]) -> float:
-    grid_lines = _get_grid_lines(lines)
-    sum = count = 0
-    if grid_lines.horizontal:
-        sum += np.mean([abs(line.theta - np.pi / 2) for line in grid_lines.horizontal])
-        count += 1
-    if grid_lines.vertical:
-        sum += np.mean([min(line.theta, np.pi - line.theta) for line in grid_lines.vertical])
-        count += 1
-    if count == 0:
-        return 0
-    angle = sum / count
-    angle_degrees = -np.degrees(angle)
-    return angle_degrees
-
-
-def _get_grid_lines(lines: list[Line]) -> GridLines:
-    horizontal = []
-    vertical = []
-    for line in lines:
-        if _is_vertical_line(line):
-            vertical.append(line)
-        else:
-            horizontal.append(line)
-    return GridLines(horizontal, vertical)
-
-
-def _is_vertical_line(line: Line) -> bool:
-    if line.theta < np.pi / 4 or line.theta > 3 * np.pi / 4:
-        return True
-    return False
 
 
 # def _find_intersections(lines: Lines) -> list[np.ndarray]:
