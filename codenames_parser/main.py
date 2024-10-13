@@ -3,6 +3,7 @@ import sys
 
 from codenames_parser.align import align_image
 from codenames_parser.color_detection import classify_cell_colors
+from codenames_parser.crop import crop_image
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
 
@@ -19,7 +20,8 @@ def main(image_path: str) -> list[list[str]]:
     """
     image = read_image(image_path)
     aligned_image = align_image(image)
-    cells = extract_cells(aligned_image)
+    cropped = crop_image(aligned_image)
+    cells = extract_cells(cropped)
     grid_colors = classify_cell_colors(cells)
     return grid_colors
 

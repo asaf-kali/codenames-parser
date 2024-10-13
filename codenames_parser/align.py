@@ -76,7 +76,7 @@ def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
 
 
 def _find_rotation_angle(lines: list[Line], max_angle: float) -> float:
-    grid_lines = _get_grid_lines(lines, max_angle=max_angle)
+    grid_lines = get_grid_lines(lines, max_angle=max_angle)
     sum = count = 0
     if grid_lines.horizontal:
         horizontal_diff = np.mean([_horizontal_diff(line.theta) for line in grid_lines.horizontal])
@@ -101,7 +101,7 @@ def _vertical_diff(theta: float) -> float:
     return float(theta - np.pi / 2)
 
 
-def _get_grid_lines(lines: list[Line], max_angle: float) -> GridLines:
+def get_grid_lines(lines: list[Line], max_angle: float = 5) -> GridLines:
     horizontal = []
     vertical = []
     skipped = []
@@ -114,7 +114,7 @@ def _get_grid_lines(lines: list[Line], max_angle: float) -> GridLines:
             skipped.append(line)
             log.debug(f"Skipping non-grid line: {line}")
     log.info(f"Total lines: {len(lines)}")
-    log.info(f"Max angle: {max_angle}")
+    log.info(f"Max angle: {max_angle}°")
     log.info(f"Horizontal lines: {len(horizontal)}")
     log.info(f"Vertical lines: {len(vertical)}")
     log.info(f"Skipped lines: {len(skipped)}")
