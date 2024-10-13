@@ -4,43 +4,51 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from codenames_parser.debugging.util import draw_lines, save_debug_image
+from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
 from codenames_parser.models import GridLines, Line
 
 log = logging.getLogger(__name__)
 
 
 def align_image(image: np.ndarray) -> np.ndarray:
+    count = 1
     rho = 1
+    max_angle = 20
+    log.info("Starting image alignment")
     while True:
-        result = _align_image_iteration(image, rho=rho)
+        log.info(SEPARATOR)
+        log.info(f"Align image iteration {count}")
+        result = _align_image_iteration(image, rho=rho, max_angle=max_angle)
         if result.line_count < 10:
             break
-        if abs(result.angle_degrees) < 0.01:
+        if abs(result.rotation_degrees) < 0.01:
             break
         image = result.aligned_image
-        rho /= 1.5
+        rho /= 1.2
+        max_angle /= 4
+    log.info(SEPARATOR)
+    log.info("Image alignment completed")
     return image
 
 
 class AlignmentIterationResult(NamedTuple):
     aligned_image: np.ndarray
     line_count: int
-    angle_degrees: float
+    rotation_degrees: float
 
 
-def _align_image_iteration(image: np.ndarray, rho: float) -> AlignmentIterationResult:
+def _align_image_iteration(image: np.ndarray, rho: float, max_angle: float) -> AlignmentIterationResult:
     blurred = blur_image(image)
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=rho)
     if not lines:
         return AlignmentIterationResult(image, 0, 0)
     draw_lines(blurred, lines=lines, title="lines_before_rotate")
-    angle_degrees = _find_rotation_angle(lines)
+    angle_degrees = _find_rotation_angle(lines, max_angle=max_angle)
     log.info(f"Rotation angle: {angle_degrees}")
     aligned_image = _rotate_by(image, angle_degrees)
     save_debug_image(aligned_image, title="aligned")
-    return AlignmentIterationResult(aligned_image=aligned_image, line_count=len(lines), angle_degrees=angle_degrees)
+    return AlignmentIterationResult(aligned_image=aligned_image, line_count=len(lines), rotation_degrees=angle_degrees)
 
 
 def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
@@ -62,8 +70,8 @@ def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
     return aligned_image
 
 
-def _find_rotation_angle(lines: list[Line]) -> float:
-    grid_lines = _get_grid_lines(lines)
+def _find_rotation_angle(lines: list[Line], max_angle: float) -> float:
+    grid_lines = _get_grid_lines(lines, max_angle=max_angle)
     sum = count = 0
     if grid_lines.horizontal:
         horizontal_diff = np.mean([_horizontal_diff(line.theta) for line in grid_lines.horizontal])
@@ -88,32 +96,39 @@ def _vertical_diff(theta: float) -> float:
     return float(theta - np.pi / 2)
 
 
-def _get_grid_lines(lines: list[Line]) -> GridLines:
+def _get_grid_lines(lines: list[Line], max_angle: float) -> GridLines:
     horizontal = []
     vertical = []
+    skipped = []
     for line in lines:
-        if _is_horizontal_line(line):
+        if _is_horizontal_line(line, max_angle=max_angle):
             horizontal.append(line)
-        elif _is_vertical_line(line):
+        elif _is_vertical_line(line, max_angle=max_angle):
             vertical.append(line)
         else:
+            skipped.append(line)
             log.debug(f"Skipping non-grid line: {line}")
+    log.info(f"Total lines: {len(lines)}")
+    log.info(f"Max angle: {max_angle}")
+    log.info(f"Horizontal lines: {len(horizontal)}")
+    log.info(f"Vertical lines: {len(vertical)}")
+    log.info(f"Skipped lines: {len(skipped)}")
     return GridLines(horizontal=horizontal, vertical=vertical)
 
 
-def _is_horizontal_line(line: Line) -> bool:
+def _is_horizontal_line(line: Line, max_angle: float) -> bool:
     diff = _horizontal_diff(line.theta)
-    return _is_grid_line(diff)
+    return _is_grid_line(diff, max_angle=max_angle)
 
 
-def _is_vertical_line(line: Line) -> bool:
+def _is_vertical_line(line: Line, max_angle: float) -> bool:
     diff = _vertical_diff(line.theta)
-    return _is_grid_line(diff)
+    return _is_grid_line(diff, max_angle=max_angle)
 
 
-def _is_grid_line(diff: float) -> bool:
+def _is_grid_line(diff: float, max_angle: float) -> bool:
     diff_degrees = np.degrees(diff)
-    return abs(diff_degrees) < 20
+    return abs(diff_degrees) < max_angle
 
 
 def blur_image(image: np.ndarray) -> np.ndarray:

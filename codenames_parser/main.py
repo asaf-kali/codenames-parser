@@ -1,3 +1,6 @@
+import logging
+import sys
+
 from codenames_parser.color_detection import classify_cell_colors
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
@@ -19,9 +22,12 @@ def main(image_path: str) -> list[list[str]]:
     return grid_colors
 
 
-def entrypoint():
-    import sys
+def configure_logging():
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname)s] %(message)s", stream=sys.stdout)
 
+
+def entrypoint():
+    configure_logging()
     if len(sys.argv) != 2:
         print("Usage: python main.py <image_path>")
         sys.exit(1)

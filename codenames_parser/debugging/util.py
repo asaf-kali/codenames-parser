@@ -9,7 +9,7 @@ from codenames_parser.models import P1P2, Color, Line, Point
 
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 run_count = 0
-
+SEPARATOR = "---------------------------------"
 log = logging.getLogger(__name__)
 
 
