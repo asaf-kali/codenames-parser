@@ -6,6 +6,11 @@ import numpy as np
 # Based on ChatGPT translation of: https://stackoverflow.com/questions/57005217/detecting-boxes-via-hough-transform
 
 
+class Box(NamedTuple):
+    p1: np.ndarray
+    p2: np.ndarray
+
+
 def intersection(o1: np.ndarray, p1: np.ndarray, o2: np.ndarray, p2: np.ndarray) -> np.ndarray | None:
     """
     finds the intersection point of two lines defined by points (o1, p1) and (o2, p2).
@@ -71,96 +76,143 @@ def cluster_pts(input_pts: list[np.ndarray], cluster_radius_squared: float) -> l
     return output_pts
 
 
-class Box(NamedTuple):
-    p1: np.ndarray
-    p2: np.ndarray
+def find_second_point(corners: list[np.ndarray], first_pt: np.ndarray, box_side_length_guess: float) -> int:
+    """Find a point vertically aligned with the first point."""
+    for i in range(1, len(corners)):
+        if abs(corners[i][0] - first_pt[0]) < box_side_length_guess / 2.0:
+            return i
+    return -1
 
 
-def find_boxes(  # noqa: C901
-    corners: list[np.ndarray], shrink_boxes: bool = False, box_side_length_guess: int = 50
+def find_third_points(
+    corners: list[np.ndarray], second_pt_index: int, box_side_length_guess: float, approx_box_size: float
+) -> tuple[int, int, float, float]:
+    """Find points to the left and right of the second point at the same vertical level."""
+    third_index_left = -1
+    third_index_right = -1
+    min_dist_right = approx_box_size
+    min_dist_left = -approx_box_size
+
+    second_pt = corners[second_pt_index]
+
+    for i in range(2, len(corners)):
+        if abs(corners[i][1] - second_pt[1]) < box_side_length_guess / 2.0:
+            dist = corners[i][0] - second_pt[0]
+            if 0 > dist > min_dist_left:
+                min_dist_left = dist
+                third_index_left = i
+            elif 0 < dist < min_dist_right:
+                min_dist_right = dist
+                third_index_right = i
+
+    return third_index_left, third_index_right, min_dist_left, min_dist_right
+
+
+def find_fourth_points(
+    corners: list[np.ndarray], third_index_left: int, third_index_right: int, box_side_length_guess: float
+) -> tuple[int, int]:
+    """Find fourth points to complete the boxes."""
+    fourth_index_left = -1
+    fourth_index_right = -1
+
+    for i in range(1, len(corners)):
+        if i in (third_index_left, third_index_right):
+            continue
+        if third_index_left != -1 and abs(corners[i][0] - corners[third_index_left][0]) < box_side_length_guess / 2.0:
+            fourth_index_left = i
+        if third_index_right != -1 and abs(corners[i][0] - corners[third_index_right][0]) < box_side_length_guess / 2.0:
+            fourth_index_right = i
+
+    return fourth_index_left, fourth_index_right
+
+
+def compute_boxes(
+    corners: list[np.ndarray],
+    first_pt: np.ndarray,
+    third_index_left: int,
+    third_index_right: int,
+    fourth_index_left: int,
+    fourth_index_right: int,
+    shrink_boxes: bool,
 ) -> list[Box]:
-    """
-    finds rectangular boxes from corner points.
+    """Compute the boxes based on found indices."""
+    boxes = []
+    if not shrink_boxes:
+        if fourth_index_right != -1:
+            box = Box(first_pt, corners[third_index_right])
+            boxes.append(box)
+        if fourth_index_left != -1:
+            box = Box(first_pt, corners[third_index_left])
+            boxes.append(box)
+    else:
+        if fourth_index_right != -1:
+            box_p1 = first_pt * 0.90 + corners[third_index_right] * 0.10
+            box_p2 = first_pt * 0.10 + corners[third_index_right] * 0.90
+            box = Box(box_p1, box_p2)
+            boxes.append(box)
+        if fourth_index_left != -1:
+            box_p1 = first_pt * 0.90 + corners[third_index_left] * 0.10
+            box_p2 = first_pt * 0.10 + corners[third_index_left] * 0.90
+            box = Box(box_p1, box_p2)
+            boxes.append(box)
+    return boxes
 
-    args:
+
+def find_boxes(corners: list[np.ndarray], shrink_boxes: bool = False, box_side_length_guess: int = 50) -> list[Box]:
+    """
+    Finds rectangular boxes from corner points.
+
+    Args:
         corners: list of corner points.
-        shrink_boxes: whether to shrink the boxes slightly.
-        box_side_length_guess: initial guess for the box side length.
+        shrink_boxes: Whether to shrink the boxes slightly.
+        box_side_length_guess: Initial guess for the box side length.
 
-    returns:
-        a list of tuples representing boxes as pairs of points.
+    Returns:
+        A list of Box representing boxes as pairs of points.
     """
-    out_boxes = []
+    out_boxes: list[Box] = []
     approx_box_size = 1000 * box_side_length_guess
     corners = corners.copy()
     while len(corners) > 4:
-        # find point above or below
-        second_pt_index = -1
-        for i in range(1, len(corners)):
-            if abs(corners[i][0] - corners[0][0]) < box_side_length_guess / 2.0:
-                second_pt_index = i
-                break
+        first_pt = corners[0]
+        second_pt_index = find_second_point(corners, first_pt, box_side_length_guess)
         if second_pt_index == -1:
             print("bad box point tossed")
             corners.pop(0)
             continue
 
-        # search for closest same level point on either side
-        third_index_right = -1
-        third_index_left = -1
-        min_dist_right = approx_box_size
-        min_dist_left = -approx_box_size
-        for i in range(2, len(corners)):
-            if abs(corners[i][1] - corners[second_pt_index][1]) < box_side_length_guess / 2.0:
-                dist = corners[i][0] - corners[second_pt_index][0]
-                if 0 > dist > min_dist_left:
-                    min_dist_left = dist
-                    third_index_left = i
-                elif 0 < dist < min_dist_right:
-                    min_dist_right = dist
-                    third_index_right = i
+        (
+            third_index_left,
+            third_index_right,
+            min_dist_left,
+            min_dist_right,
+        ) = find_third_points(corners, second_pt_index, box_side_length_guess, approx_box_size)
 
         if third_index_left != -1:
             approx_box_size = 1.5 * abs(min_dist_left)
         if third_index_right != -1:
             approx_box_size = 1.5 * min_dist_right
 
-        fourth_index_right = -1
-        fourth_index_left = -1
+        fourth_index_left, fourth_index_right = find_fourth_points(
+            corners, third_index_left, third_index_right, box_side_length_guess
+        )
 
-        for i in range(1, len(corners)):
-            if i == third_index_left or i == third_index_right:
-                continue
-            if (
-                third_index_left != -1
-                and abs(corners[i][0] - corners[third_index_left][0]) < box_side_length_guess / 2.0
-            ):
-                fourth_index_left = i
-            if (
-                third_index_right != -1
-                and abs(corners[i][0] - corners[third_index_right][0]) < box_side_length_guess / 2.0
-            ):
-                fourth_index_right = i
+        boxes = compute_boxes(
+            corners,
+            first_pt,
+            third_index_left,
+            third_index_right,
+            fourth_index_left,
+            fourth_index_right,
+            shrink_boxes,
+        )
+        out_boxes.extend(boxes)
 
-        if not shrink_boxes:
-            if fourth_index_right != -1:
-                out_boxes.append((corners[0], corners[third_index_right]))
-            if fourth_index_left != -1:
-                out_boxes.append((corners[0], corners[third_index_left]))
-        else:
-            if fourth_index_right != -1:
-                box_p1 = corners[0] * 0.90 + corners[third_index_right] * 0.10
-                box_p2 = corners[0] * 0.10 + corners[third_index_right] * 0.90
-                out_boxes.append((box_p1, box_p2))
-            if fourth_index_left != -1:
-                box_p1 = corners[0] * 0.90 + corners[third_index_left] * 0.10
-                box_p2 = corners[0] * 0.10 + corners[third_index_left] * 0.90
-                out_boxes.append((box_p1, box_p2))
-
-        # remove used points
+        # Remove used points
         if second_pt_index > 0:
             corners.pop(second_pt_index)
         corners.pop(0)
+
     print(approx_box_size)
     return [Box(p1=box[0], p2=box[1]) for box in out_boxes]
 
@@ -223,7 +275,7 @@ def main():  # noqa: C901
             if x_pt is not None:
                 x_pts.append(x_pt)
 
-    cv2.waitKey(1000)
+    # cv2.waitKey(1000)
 
     # cluster intersection points
     box_corners = cluster_pts(x_pts, 25 * 25)
