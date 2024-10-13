@@ -14,6 +14,7 @@ MIN_ROTATION_ANGLE = 0.01
 
 
 def align_image(image: np.ndarray) -> np.ndarray:
+    # TODO: Handle tilt
     count = 1
     rho = 1
     max_angle = 20

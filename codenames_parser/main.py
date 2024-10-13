@@ -6,6 +6,7 @@ from codenames_parser.color_detection import classify_cell_colors
 from codenames_parser.crop import crop_image
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
+from scale import scale_down_image
 
 
 def main(image_path: str) -> list[list[str]]:
@@ -19,8 +20,8 @@ def main(image_path: str) -> list[list[str]]:
         list[list[str]]: A 5x5 grid representing the colors of the cells.
     """
     image = read_image(image_path)
-    # TODO: Downscale the image to a smaller size to speed up processing
-    aligned_image = align_image(image)
+    small_image = scale_down_image(image)
+    aligned_image = align_image(small_image)
     cropped = crop_image(aligned_image)
     cells = extract_cells(cropped)
     grid_colors = classify_cell_colors(cells)
