@@ -1,3 +1,4 @@
+import logging
 from typing import NamedTuple
 
 import numpy as np
@@ -8,7 +9,9 @@ from codenames_parser.align import (
     extract_lines,
     get_grid_lines,
 )
-from codenames_parser.debugging.util import draw_lines, save_debug_image
+from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
+
+log = logging.getLogger(__name__)
 
 
 class Line(NamedTuple):
@@ -25,6 +28,8 @@ def crop_image(image: np.ndarray) -> np.ndarray:
     """
     Crop the input image according to the main Hough lines.
     """
+    log.info(SEPARATOR)
+    log.info("Starting image cropping...")
     blurred = blur_image(image)
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=1)

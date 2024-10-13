@@ -1,7 +1,11 @@
+import logging
+
 import cv2
 import numpy as np
 
-from codenames_parser.debugging.util import save_debug_image
+from codenames_parser.debugging.util import SEPARATOR, save_debug_image
+
+log = logging.getLogger(__name__)
 
 
 def read_image(image_path: str) -> np.ndarray:
@@ -14,6 +18,8 @@ def read_image(image_path: str) -> np.ndarray:
     Returns:
         np.ndarray: The image in BGR format.
     """
+    log.info(SEPARATOR)
+    log.info(f"Reading image from {image_path}")
     image = cv2.imread(image_path)
     if image is None:
         raise FileNotFoundError(f"Unable to read image at {image_path}")

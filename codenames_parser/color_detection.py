@@ -1,5 +1,11 @@
+import logging
+
 import cv2
 import numpy as np
+
+from codenames_parser.debugging.util import SEPARATOR
+
+log = logging.getLogger(__name__)
 
 
 def classify_cell_colors(cells: list[list[np.ndarray]]) -> list[list[str]]:
@@ -12,6 +18,8 @@ def classify_cell_colors(cells: list[list[np.ndarray]]) -> list[list[str]]:
     Returns:
         list[list[str]]: A 2D list of color names corresponding to each cell.
     """
+    log.info(SEPARATOR)
+    log.info("Classifying cell colors...")
     color_names = []
     for row_cells in cells:
         row_colors = []

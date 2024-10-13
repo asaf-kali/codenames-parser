@@ -17,7 +17,8 @@ def align_image(image: np.ndarray) -> np.ndarray:
     count = 1
     rho = 1
     max_angle = 20
-    log.info("Starting image alignment")
+    log.info(SEPARATOR)
+    log.info("Starting image alignment...")
     while True:
         log.info(SEPARATOR)
         log.info(f"Align image iteration {count}")

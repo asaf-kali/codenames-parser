@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from codenames_parser.align import blur_image, detect_edges, extract_lines
-from codenames_parser.debugging.util import draw_lines, save_debug_image
+from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
 from codenames_parser.models import Line
 
 log = logging.getLogger(__name__)
@@ -25,6 +25,8 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     Returns:
         list[np.ndarray]: A list of cell images.
     """
+    log.info(SEPARATOR)
+    log.info("Extracting cells...")
     blurred = blur_image(image)
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=0.2)
