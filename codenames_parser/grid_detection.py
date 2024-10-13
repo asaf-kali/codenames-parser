@@ -1,4 +1,5 @@
 import logging
+from typing import NamedTuple
 
 import cv2
 import numpy as np
@@ -87,13 +88,15 @@ def _extract_squares(image: np.ndarray) -> list[np.ndarray]:
 
 def _extract_lines(edges: np.ndarray, rho: float = 1, theta: float = np.pi / 180, threshold: int = 100) -> list[Line]:
     # Find lines using Hough transform
-    lines = cv2.HoughLines(edges, rho=rho, theta=theta, threshold=threshold)
-    _lines = []
-    for line in lines:
+    hough_lines = cv2.HoughLines(edges, rho=rho, theta=theta, threshold=threshold)
+    if hough_lines is None:
+        return []
+    lines = []
+    for line in hough_lines:
         rho, theta = line[0]
         line = Line(rho, theta)
-        _lines.append(line)
-    return _lines
+        lines.append(line)
+    return lines
 
 
 def _cluster_and_merge_lines(lines: list[Line], image: np.ndarray | None) -> list[Line]:
@@ -170,15 +173,34 @@ def _get_line_draw_params(line: Line) -> P1P2:
 
 
 def _align_image(image: np.ndarray) -> np.ndarray:
+    rho = 1
+    while True:
+        result = _align_image_iteration(image, rho=rho)
+        image = result.image
+        if result.line_count < 10:
+            break
+        rho /= 1.5
+    save_debug_image(image, title="aligned_final")
+    return image
+
+
+class AlignmentResult(NamedTuple):
+    image: np.ndarray
+    line_count: int
+
+
+def _align_image_iteration(image: np.ndarray, rho: float) -> AlignmentResult:
     blurred = _blur_image(image)
     edges = _detect_edges(blurred)
-    lines = _extract_lines(edges)
+    lines = _extract_lines(edges, rho=rho)
+    if not lines:
+        return AlignmentResult(image, 0)
     _draw_lines(blurred, lines, title="lines_before_rotate")
     angle_degrees = _find_rotation_angle(lines)
     log.info(f"Rotation angle: {angle_degrees}")
     aligned_image = _rotate_by(image, angle_degrees)
     save_debug_image(aligned_image, title="aligned")
-    return aligned_image
+    return AlignmentResult(aligned_image, len(lines))
 
 
 def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
