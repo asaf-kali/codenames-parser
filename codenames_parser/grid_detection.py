@@ -3,7 +3,7 @@ import logging
 import cv2
 import numpy as np
 
-from codenames_parser.align import align_image, blur_image, detect_edges, extract_lines
+from codenames_parser.align import blur_image, detect_edges, extract_lines
 from codenames_parser.debugging.util import draw_lines, save_debug_image
 from codenames_parser.models import Line
 
@@ -25,11 +25,10 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     Returns:
         list[np.ndarray]: A list of cell images.
     """
-    aligned_image = align_image(image)
-    blurred = blur_image(aligned_image)
+    blurred = blur_image(image)
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=0.2)
-    draw_lines(aligned_image, lines, title="lines_after_alignment")
+    draw_lines(image, lines, title="lines_after_alignment")
     # lines_filtered = _cluster_and_merge_lines(lines, blurred)
     # _draw_lines(blurred, lines_filtered, title="filtered lines")
     # intersections = _find_intersections(lines)

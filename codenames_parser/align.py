@@ -9,6 +9,9 @@ from codenames_parser.models import GridLines, Line
 
 log = logging.getLogger(__name__)
 
+MIN_LINE_COUNT = 10
+MIN_ROTATION_ANGLE = 0.01
+
 
 def align_image(image: np.ndarray) -> np.ndarray:
     count = 1
@@ -19,9 +22,9 @@ def align_image(image: np.ndarray) -> np.ndarray:
         log.info(SEPARATOR)
         log.info(f"Align image iteration {count}")
         result = _align_image_iteration(image, rho=rho, max_angle=max_angle)
-        if result.line_count < 10:
+        if result.line_count < MIN_LINE_COUNT:
             break
-        if abs(result.rotation_degrees) < 0.01:
+        if abs(result.rotation_degrees) < MIN_ROTATION_ANGLE:
             break
         image = result.aligned_image
         rho /= 1.2
@@ -42,12 +45,14 @@ def _align_image_iteration(image: np.ndarray, rho: float, max_angle: float) -> A
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=rho)
     if not lines:
-        return AlignmentIterationResult(image, 0, 0)
+        return AlignmentIterationResult(aligned_image=image, line_count=0, rotation_degrees=0)
     draw_lines(blurred, lines=lines, title="lines_before_rotate")
     angle_degrees = _find_rotation_angle(lines, max_angle=max_angle)
     log.info(f"Rotation angle: {angle_degrees}")
+    if abs(angle_degrees) < MIN_ROTATION_ANGLE:
+        return AlignmentIterationResult(aligned_image=image, line_count=len(lines), rotation_degrees=0)
     aligned_image = _rotate_by(image, angle_degrees)
-    save_debug_image(aligned_image, title="aligned")
+    save_debug_image(aligned_image, title=f"aligned {angle_degrees:.2f} deg")
     return AlignmentIterationResult(aligned_image=aligned_image, line_count=len(lines), rotation_degrees=angle_degrees)
 
 

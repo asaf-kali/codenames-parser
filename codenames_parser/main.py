@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from codenames_parser.align import align_image
 from codenames_parser.color_detection import classify_cell_colors
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
@@ -17,7 +18,8 @@ def main(image_path: str) -> list[list[str]]:
         list[list[str]]: A 5x5 grid representing the colors of the cells.
     """
     image = read_image(image_path)
-    cells = extract_cells(image)
+    aligned_image = align_image(image)
+    cells = extract_cells(aligned_image)
     grid_colors = classify_cell_colors(cells)
     return grid_colors
 
