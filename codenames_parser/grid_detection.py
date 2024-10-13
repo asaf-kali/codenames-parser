@@ -1,8 +1,12 @@
+import logging
+
 import cv2
 import numpy as np
 
 from codenames_parser.debugging.util import save_debug_image
-from codenames_parser.models import P1P2, Color, Line, Point
+from codenames_parser.models import P1P2, Color, GridLines, Line, Point
+
+log = logging.getLogger(__name__)
 
 
 def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
@@ -20,17 +24,17 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     Returns:
         list[np.ndarray]: A list of cell images.
     """
-    blurred = _blur_image(image)
+    aligned_image = _align_image(image)
+    blurred = _blur_image(aligned_image)
     edges = _detect_edges(blurred)
-    lines = _extract_lines(edges)
-    _draw_lines(blurred, lines, title="lines")
-    lines_filtered = _cluster_and_merge_lines(lines)
-    _draw_lines(blurred, lines_filtered, title="filtered lines")
-    aligned_image = _align_image(image, lines_filtered)
+    lines = _extract_lines(edges, rho=0.2)
+    _draw_lines(aligned_image, lines, title="lines_after_alignment")
+    # lines_filtered = _cluster_and_merge_lines(lines, blurred)
+    # _draw_lines(blurred, lines_filtered, title="filtered lines")
     # intersections = _find_intersections(lines)
     # _draw_intersections(aligned_image, intersections)
-    cells = _extract_cells(aligned_image, lines_filtered)
-    return cells
+    # cells = _extract_cells(aligned_image, lines_filtered)
+    return []
 
 
 def _blur_image(image: np.ndarray) -> np.ndarray:
@@ -49,9 +53,41 @@ def _detect_edges(image: np.ndarray) -> np.ndarray:
     return edges
 
 
-def _extract_lines(edges: np.ndarray) -> list[Line]:
+def _extract_squares(image: np.ndarray) -> list[np.ndarray]:
+    sharpen_kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+    sharpen = cv2.filter2D(image, -1, sharpen_kernel)
+    save_debug_image(sharpen, title="sharpen")
+    # Threshold and morph close
+    thresh = cv2.threshold(sharpen, 50, 255, cv2.THRESH_BINARY_INV)[1]
+    save_debug_image(thresh, title="thresh")
+    morph_kernel_size = 5
+    morph_shape = (morph_kernel_size, morph_kernel_size)
+    morph_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, morph_shape)
+    close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel=morph_kernel, iterations=2)
+    save_debug_image(close, title="close")
+    # Find contours and filter using threshold area
+    contours = cv2.findContours(close, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
+
+    min_area = 100
+    max_area = 150000
+    count = 0
+    squares = []
+    for c in contours:
+        area = cv2.contourArea(c)
+        if min_area < area < max_area:
+            x, y, w, h = cv2.boundingRect(c)
+            rect = image[y : y + h, x : x + w]
+            save_debug_image(rect, title=f"square_{count}")
+            squares.append(rect)
+            count += 1
+    _draw_squares(image, squares)
+    return squares
+
+
+def _extract_lines(edges: np.ndarray, rho: float = 1, theta: float = np.pi / 180, threshold: int = 100) -> list[Line]:
     # Find lines using Hough transform
-    lines = cv2.HoughLines(edges, 1, np.pi / 180, 100)
+    lines = cv2.HoughLines(edges, rho=rho, theta=theta, threshold=threshold)
     _lines = []
     for line in lines:
         rho, theta = line[0]
@@ -60,18 +96,22 @@ def _extract_lines(edges: np.ndarray) -> list[Line]:
     return _lines
 
 
-def _cluster_and_merge_lines(lines: list[Line]) -> list[Line]:
-    # Cluster lines based on angle
+def _cluster_and_merge_lines(lines: list[Line], image: np.ndarray | None) -> list[Line]:
+    from sklearn.cluster import KMeans
+
+    # Cluster lines offset using k-means
+    rhos = np.array([line.rho for line in lines])
+    rhos = rhos.reshape(-1, 1)
+    kmeans = KMeans(n_clusters=15, random_state=0).fit(rhos)
+    centers = kmeans.cluster_centers_
+    # For each line, find the closest cluster center
     clusters = {}
     for line in lines:
-        theta = line.theta
-        for cluster_theta in clusters:
-            if abs(theta - cluster_theta) < np.pi / 18:
-                clusters[cluster_theta].append(line)
-                break
-        else:
-            clusters[theta] = [line]
-
+        distances = np.linalg.norm(centers - np.array([line.rho, line.theta]), axis=1)
+        closest_cluster = np.argmin(distances)
+        if closest_cluster not in clusters:
+            clusters[closest_cluster] = []
+        clusters[closest_cluster].append(line)
     # Merge lines in each cluster
     merged_lines = []
     for cluster in clusters.values():
@@ -93,6 +133,13 @@ def _draw_lines(image: np.ndarray, lines: list[Line], title: str) -> np.ndarray:
         color = _pick_line_color(line)
         cv2.line(image, loc.p1, loc.p2, color, 2)
     save_debug_image(image, title=title)
+    return image
+
+
+def _draw_squares(image: np.ndarray, squares: list[np.ndarray]) -> np.ndarray:
+    for square in squares:
+        cv2.rectangle(image, (0, 0), (square.shape[1], square.shape[0]), (0, 255, 0), 2)
+    save_debug_image(image, title="squares")
     return image
 
 
@@ -122,16 +169,61 @@ def _get_line_draw_params(line: Line) -> P1P2:
     return P1P2(p1, p2)
 
 
-def _align_image(image: np.ndarray, lines: list[Line]) -> np.ndarray:
-    # Rotate the image to align the grid lines
-    horizontal_angle = np.mean([abs(line.theta - np.pi / 2) for line in lines.horizontal])
-    vertical_angle = np.mean([min(line.theta, np.pi - line.theta) for line in lines.vertical])
-    angle = (horizontal_angle + vertical_angle) / 2
-    center = (image.shape[1] / 2, image.shape[0] / 2)
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle * 180 / np.pi, 1)
-    aligned_image = cv2.warpAffine(image, rotation_matrix, image.shape[:2])
+def _align_image(image: np.ndarray) -> np.ndarray:
+    blurred = _blur_image(image)
+    edges = _detect_edges(blurred)
+    lines = _extract_lines(edges)
+    _draw_lines(blurred, lines, title="lines_before_rotate")
+    angle_degrees = _find_rotation_angle(lines)
+    log.info(f"Rotation angle: {angle_degrees}")
+    aligned_image = _rotate_by(image, angle_degrees)
     save_debug_image(aligned_image, title="aligned")
     return aligned_image
+
+
+def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
+    # Get the image center and dimensions
+    h, w = image.shape[:2]
+    center = (w / 2, h / 2)
+    # Compute the rotation matrix
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle_degrees, 1)
+    # Calculate the new bounding dimensions of the rotated image
+    cos_angle = np.abs(rotation_matrix[0, 0])
+    sin_angle = np.abs(rotation_matrix[0, 1])
+    new_w = int(h * sin_angle + w * cos_angle)
+    new_h = int(h * cos_angle + w * sin_angle)
+    # Adjust the rotation matrix to take into account the translation
+    rotation_matrix[0, 2] += (new_w / 2) - center[0]
+    rotation_matrix[1, 2] += (new_h / 2) - center[1]
+    # Apply the warp affine with the new dimensions to preserve all pixels
+    aligned_image = cv2.warpAffine(image, rotation_matrix, (new_w, new_h))
+    return aligned_image
+
+
+def _find_rotation_angle(lines: list[Line]) -> float:
+    grid_lines = _get_grid_lines(lines)
+    horizontal_angle = np.mean([abs(line.theta - np.pi / 2) for line in grid_lines.horizontal])
+    vertical_angle = np.mean([min(line.theta, np.pi - line.theta) for line in grid_lines.vertical])
+    angle = (horizontal_angle + vertical_angle) / 2
+    angle_degrees = -np.degrees(angle)
+    return angle_degrees
+
+
+def _get_grid_lines(lines: list[Line]) -> GridLines:
+    horizontal = []
+    vertical = []
+    for line in lines:
+        if _is_vertical_line(line):
+            vertical.append(line)
+        else:
+            horizontal.append(line)
+    return GridLines(horizontal, vertical)
+
+
+def _is_vertical_line(line: Line) -> bool:
+    if line.theta < np.pi / 4 or line.theta > 3 * np.pi / 4:
+        return True
+    return False
 
 
 # def _find_intersections(lines: Lines) -> list[np.ndarray]:

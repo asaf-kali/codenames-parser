@@ -12,11 +12,11 @@ class P1P2(NamedTuple):
 
 
 class Line(NamedTuple):
-    rho: float
-    theta: float
+    rho: float  # distance from the origin
+    theta: float  # angle in radians
 
 
-class Lines(NamedTuple):
+class GridLines(NamedTuple):
     horizontal: list[Line]
     vertical: list[Line]
 
