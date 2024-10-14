@@ -10,6 +10,7 @@ from codenames_parser.align import (
     get_grid_lines,
 )
 from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
+from codenames_parser.models import Box
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +53,15 @@ def crop_by_bounds(image: np.ndarray, horizontal_bounds: AxisBounds, vertical_bo
     end_y = _valid_rho(horizontal_bounds.end.rho)
     cropped = image[start_y:end_y, start_x:end_x]
     save_debug_image(cropped, title="cropped")
+    return cropped
+
+
+def crop_by_box(image: np.ndarray, box: Box) -> np.ndarray:
+    """
+    Crop the input image according to the given box.
+    """
+    cropped = image[box.y : box.y + box.h, box.x : box.x + box.w]
+    save_debug_image(cropped, title="cropped cell")
     return cropped
 
 
