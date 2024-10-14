@@ -53,9 +53,19 @@ class Color(NamedTuple):
 
 
 class Grid(Generic[T]):
-    def __init__(self, row_size: int, rows: list[list[T]] = None):
+    def __init__(self, row_size: int):
         self.row_size = row_size
-        self._rows = rows or []
+        self._rows = []
+
+    @staticmethod
+    def from_rows(rows: list[list[T]]) -> "Grid[T]":
+        if len(rows) == 0:
+            raise ValueError("Rows cannot be empty")
+        row_size = len(rows[0])
+        grid = Grid(row_size)
+        for row in rows:
+            grid.append(row)
+        return grid
 
     def append(self, row: list[T]) -> None:
         if len(row) != self.row_size:
@@ -67,3 +77,17 @@ class Grid(Generic[T]):
 
     def __len__(self) -> int:
         return len(self._rows)
+
+    def __eq__(self, other):
+        if not isinstance(other, Grid):
+            return False
+        if self.row_size != other.row_size:
+            return False
+        row_count = len(self._rows)
+        if row_count != len(other):
+            return False
+        for i in range(row_count):
+            for j in range(self.row_size):
+                if self[i][j] != other[i][j]:
+                    return False
+        return True
