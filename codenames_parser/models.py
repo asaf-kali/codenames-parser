@@ -52,6 +52,13 @@ class Color(NamedTuple):
         return f"({self.r},{self.g},{self.b})"
 
 
+class CellDiff(NamedTuple):
+    row: int
+    col: int
+    value_self: T
+    value_other: T
+
+
 class Grid(Generic[T]):
     def __init__(self, row_size: int):
         self.row_size = row_size
@@ -83,11 +90,16 @@ class Grid(Generic[T]):
             return False
         if self.row_size != other.row_size:
             return False
-        row_count = len(self._rows)
-        if row_count != len(other):
+        if len(self._rows) != len(other):
             return False
-        for i in range(row_count):
+        diff = self.diff(other)
+        return not diff
+
+    def diff(self, other: "Grid[T]") -> list[CellDiff]:
+        diff = []
+        for i in range(len(self._rows)):
             for j in range(self.row_size):
                 if self[i][j] != other[i][j]:
-                    return False
-        return True
+                    cell_diff = CellDiff(i, j, self[i][j], other[i][j])
+                    diff.append(cell_diff)
+        return diff

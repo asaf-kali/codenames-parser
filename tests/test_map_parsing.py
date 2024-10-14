@@ -1,9 +1,11 @@
 import os
 
 import pytest
+from codenames.game.color import CardColor
 
 from codenames_parser.main import main
-from tests.cases import CASE_CUT_ROTATED, MapTestCase
+from codenames_parser.models import Grid
+from tests.cases import MAP_CASES
 from tests.fixtures import get_fixture_path
 
 
@@ -12,8 +14,9 @@ def set_env_vars():
     os.environ["DEBUG_DISABLED"] = "true"
 
 
-@pytest.mark.parametrize("map_test_case", [CASE_CUT_ROTATED])
-def test_map_parsing(map_test_case: MapTestCase):
-    image_path = get_fixture_path(map_test_case.fixture_file)
+@pytest.mark.parametrize("fixture_file,expected_grid", MAP_CASES)
+def test_map_parsing(fixture_file: str, expected_grid: Grid[CardColor]):
+    image_path = get_fixture_path(fixture_file)
     result = main(image_path=image_path)
-    assert result == map_test_case.expected_grid
+    diff = expected_grid.diff(other=result)
+    assert not diff
