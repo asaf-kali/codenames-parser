@@ -11,7 +11,8 @@ from codenames_parser.models import Box, Grid
 
 log = logging.getLogger(__name__)
 
-GRID_SIZE = 5
+GRID_SIDE = 5
+GRID_SIZE = GRID_SIDE * GRID_SIDE
 
 
 def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
@@ -21,17 +22,17 @@ def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
     deduplicated_boxes = _deduplicate_boxes(boxes=card_boxes)
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
     all_card_boxes = _complete_missing_boxes(deduplicated_boxes)
-    draw_boxes(image, boxes=all_card_boxes, title="25 boxes")
+    draw_boxes(image, boxes=all_card_boxes, title=f"{GRID_SIZE} boxes")
     grid = _crop_cells(image, all_card_boxes)
     return grid
 
 
 def _crop_cells(image: np.ndarray, all_card_boxes: list[Box]) -> Grid[np.ndarray]:
-    grid = Grid(row_size=GRID_SIZE)
-    for i in range(GRID_SIZE):
+    grid = Grid(row_size=GRID_SIDE)
+    for i in range(GRID_SIDE):
         row = []
-        for j in range(GRID_SIZE):
-            box = all_card_boxes[i * 5 + j]
+        for j in range(GRID_SIDE):
+            box = all_card_boxes[i * GRID_SIDE + j]
             cell = crop_by_box(image, box)
             row.append(cell)
         grid.append(row)
@@ -80,33 +81,33 @@ def _box_iou(box1: Box, box2: Box) -> float:
 
 
 def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
-    if len(boxes) == 25:
+    if len(boxes) == GRID_SIZE:
         return boxes
 
-    # Get x and y centers of existing boxes
-    x_centers = np.array([box.x + box.w / 2 for box in boxes])
-    y_centers = np.array([box.y + box.h / 2 for box in boxes])
+    num_rows, num_cols = GRID_SIDE, GRID_SIDE
 
-    # Cluster x and y centers into 5 clusters each
-    from sklearn.cluster import KMeans
-
-    kmeans_x = KMeans(n_clusters=5, random_state=0)
-    kmeans_y = KMeans(n_clusters=5, random_state=0)
-    x_labels = kmeans_x.fit_predict(x_centers.reshape(-1, 1))  # noqa: F841
-    y_labels = kmeans_y.fit_predict(y_centers.reshape(-1, 1))  # noqa: F841
-
-    # Get sorted cluster centers
-    x_cluster_centers = sorted(kmeans_x.cluster_centers_.flatten())
-    y_cluster_centers = sorted(kmeans_y.cluster_centers_.flatten())
+    # Collect x and y centers of existing boxes
+    x_centers = [box.x + box.w / 2 for box in boxes]
+    y_centers = [box.y + box.h / 2 for box in boxes]
 
     # Compute average width and height of the boxes
     avg_w = int(np.mean([box.w for box in boxes]))
     avg_h = int(np.mean([box.h for box in boxes]))
 
-    # Generate the grid of boxes based on cluster centers
+    # Find min and max x and y centers
+    min_x_center, max_x_center = min(x_centers), max(x_centers)
+    min_y_center, max_y_center = min(y_centers), max(y_centers)
+
+    # Compute the step sizes for x and y to create the grid
+    x_step = (max_x_center - min_x_center) / (num_cols - 1)
+    y_step = (max_y_center - min_y_center) / (num_rows - 1)
+
+    # Generate the grid of boxes based on min/max centers and step sizes
     grid_boxes = []
-    for y_center in y_cluster_centers:
-        for x_center in x_cluster_centers:
+    for row in range(num_rows):
+        y_center = min_y_center + row * y_step
+        for col in range(num_cols):
+            x_center = min_x_center + col * x_step
             x = int(x_center - avg_w / 2)
             y = int(y_center - avg_h / 2)
             grid_boxes.append(Box(x, y, avg_w, avg_h))

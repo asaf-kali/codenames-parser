@@ -36,6 +36,7 @@ def entrypoint():
     for row in grid:
         for cell in row:
             print(cell.emoji, end=" ")
+        print("")
 
 
 if __name__ == "__main__":

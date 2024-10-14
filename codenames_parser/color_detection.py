@@ -1,9 +1,9 @@
 import logging
 
-import cv2
 import numpy as np
 from codenames.game.color import CardColor
 
+from codenames_parser.consts import CARD_COLOR_TO_COLOR
 from codenames_parser.debugging.util import SEPARATOR
 from codenames_parser.models import Grid
 
@@ -22,51 +22,20 @@ def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
     """
     log.info(SEPARATOR)
     log.info("Classifying cell colors...")
-    color_names = []
-    for row_cells in cells:
-        row_colors = []
-        for cell in row_cells:
-            color = detect_dominant_color(cell)
-            row_colors.append(color)
-        color_names.append(row_colors)
-    return color_names
+    card_colors = Grid(row_size=cells.row_size)
+    for cell_row in cells:
+        row_colors = [detect_dominant_color(cell) for cell in cell_row]
+        card_colors.append(row_colors)
+    return card_colors
 
 
-def detect_dominant_color(cell: np.ndarray) -> str:
+def detect_dominant_color(cell: np.ndarray) -> CardColor:
     """
     Detects the dominant color in a cell:
-    1.
-    Args:
-        cell (np.ndarray): The cell image.
-
-    Returns:
-        str: The name of the dominant color.
     """
-    # Resize cell to reduce computation
-    small_cell = cv2.resize(cell, (50, 50))
-    # Convert to HSV color space
-    hsv_cell = cv2.cvtColor(small_cell, cv2.COLOR_BGR2HSV)
-    # Compute histogram
-    hist = cv2.calcHist([hsv_cell], [0], None, [180], [0, 180])
-    dominant_hue = np.argmax(hist)
-
-    # Define color ranges
-    color_ranges = {
-        "red": [(0, 10), (160, 180)],
-        "yellow": [(20, 30)],
-        "blue": [(100, 130)],
-        "black": [(0, 180)],  # Assuming black has low saturation and value
+    avg_color = cell.mean(axis=(0, 1))
+    distances = {
+        card_color: np.linalg.norm(avg_color - color.vector) for card_color, color in CARD_COLOR_TO_COLOR.items()
     }
-
-    # Average saturation and value to detect black
-    avg_saturation = hsv_cell[:, :, 1].mean()
-    avg_value = hsv_cell[:, :, 2].mean()
-    if avg_value < 30 and avg_saturation < 30:
-        return "black"
-
-    for color_name, ranges in color_ranges.items():
-        for lower, upper in ranges:
-            if lower <= dominant_hue <= upper:
-                return color_name
-
-    return "unknown"
+    closest_color = min(distances, key=distances.get)
+    return closest_color

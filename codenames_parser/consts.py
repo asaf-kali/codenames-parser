@@ -8,11 +8,11 @@ CODENAMES_YELLOW = Color(r=240, g=215, b=170)
 CODENAMES_BLACK = Color(r=10, g=10, b=10)
 CODENAMES_COLORS = [CODENAMES_RED, CODENAMES_BLUE, CODENAMES_YELLOW]
 
-CARD_COLOR_TO_COLOR: dict[Color, CardColor] = {
+COLOR_TO_CARD_COLOR: dict[Color, CardColor] = {
     CODENAMES_RED: CardColor.RED,
     CODENAMES_BLUE: CardColor.BLUE,
     CODENAMES_YELLOW: CardColor.GRAY,
     CODENAMES_BLACK: CardColor.BLACK,
 }
 
-COLOR_TO_CARD_COLOR: dict[CardColor, Color] = {v: k for k, v in CARD_COLOR_TO_COLOR.items()}
+CARD_COLOR_TO_COLOR: dict[CardColor, Color] = {v: k for k, v in COLOR_TO_CARD_COLOR.items()}

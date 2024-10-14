@@ -54,12 +54,12 @@ class Color(NamedTuple):
 
 class Grid(Generic[T]):
     def __init__(self, row_size: int, rows: list[list[T]] = None):
-        self._row_size = row_size
+        self.row_size = row_size
         self._rows = rows or []
 
     def append(self, row: list[T]) -> None:
-        if len(row) != self._row_size:
-            raise ValueError(f"Row size must be {self._row_size}")
+        if len(row) != self.row_size:
+            raise ValueError(f"Row size must be {self.row_size}")
         self._rows.append(row)
 
     def __getitem__(self, index: int) -> list[T]:
