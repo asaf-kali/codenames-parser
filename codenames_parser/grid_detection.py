@@ -9,15 +9,12 @@ from codenames_parser.align import (
     extract_lines,
     get_grid_lines,
 )
+from codenames_parser.consts import CODENAMES_COLORS
 from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
+from codenames_parser.mask import apply_mask, color_distance_mask
 from codenames_parser.models import Color, GridLines, Line
 
 log = logging.getLogger(__name__)
-
-CODENAMES_RED = Color(r=250, g=45, b=45)
-CODENAMES_BLUE = Color(r=45, g=115, b=170)
-CODENAMES_YELLOW = Color(r=240, g=220, b=170)
-CODENAMES_COLORS = [CODENAMES_RED, CODENAMES_BLUE, CODENAMES_YELLOW]
 
 
 def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
@@ -37,20 +34,19 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     """
     log.info(SEPARATOR)
     log.info("Extracting cells...")
-    blurred = blur_image(image)
-    edges = detect_edges(blurred)
-    lines = extract_lines(edges, rho=0.2)
-    draw_lines(image, lines, title="lines_after_alignment")
-    grid_lines = GridLines(horizontal=[], vertical=[])
-    color_images = []
+    # blurred = blur_image(image)
+    # edges = detect_edges(blurred)
+    # lines = extract_lines(edges, rho=0.2)
+    # draw_lines(image, lines, title="lines after_alignment")
+    color_masks = []
     for color in CODENAMES_COLORS:
-        color_image = _color_distance_image(image, color)
-        color_images.append(color_image)
-        color_grid_lines = _small_extract_grid_lines(color_image)
-        grid_lines.horizontal.extend(color_grid_lines.horizontal)
-        grid_lines.vertical.extend(color_grid_lines.vertical)
-    draw_grid_lines = grid_lines.horizontal + grid_lines.vertical
-    draw_lines(image, lines=draw_grid_lines, title="all_grid_lines")
+        color_mask = color_distance_mask(image, color)
+        color_masks.append(color_mask)
+    # Apply or on all color masks
+    mask = np.logical_or.reduce(color_masks)
+    masked = apply_mask(image, mask=mask)
+    save_debug_image(masked, title="masked")
+    # draw_lines(masked, lines=draw_grid_lines, title="all_grid_lines")
     # lines_filtered = _cluster_and_merge_lines(lines, blurred)
     # _draw_lines(blurred, lines_filtered, title="filtered lines")
     # intersections = _find_intersections(lines)
@@ -74,39 +70,15 @@ def _extract_color_grid_lines(image: np.ndarray, color: Color) -> GridLines:
     """
     log.info(SEPARATOR)
     log.info(f"Extracting grid lines for {color}...")
-    mask = _color_distance_mask(image, color=color)
+    mask = color_distance_mask(image, color=color)
     filtered = cv2.multiply(image, np.stack([mask] * 3, axis=-1).astype(np.uint8))
-    save_debug_image(filtered, title=f"filtered_{color}")
+    save_debug_image(filtered, title=f"filtered {color}")
     blurred = blur_image(filtered)
     edges = detect_edges(blurred)
     lines = extract_lines(edges, rho=0.5)
     grid_lines = get_grid_lines(lines)
-    draw_lines(filtered, lines=grid_lines.horizontal + grid_lines.vertical, title=f"grid_lines_{color}")
+    draw_lines(filtered, lines=grid_lines.horizontal + grid_lines.vertical, title=f"grid lines {color}")
     return grid_lines
-
-
-def _color_distance_image(image: np.ndarray, color: Color) -> np.ndarray:
-    """
-    Calculates the Euclidean distance between the image and a color.
-    """
-    norms = np.linalg.norm(image - color.vector, axis=2)
-    # Normalize the distance
-    max_distance = np.max(norms)
-    normalized = norms / max_distance
-    save_debug_image((normalized * 255).astype(np.uint8), title=f"normalized for {color}")
-    # Histogram equalization
-    equalized = cv2.equalizeHist((normalized * 255).astype(np.uint8))
-    save_debug_image(equalized, title=f"equalized for {color}")
-    return equalized
-
-
-def _color_distance_mask(image: np.ndarray, color: Color, max_distance: float = 50) -> np.ndarray:
-    """
-    Filters the image by color using Euclidean distance.
-    """
-    distance = np.linalg.norm(image - color.vector, axis=2)
-    mask = distance < max_distance
-    return mask
 
 
 def _extract_squares(image: np.ndarray) -> list[np.ndarray]:

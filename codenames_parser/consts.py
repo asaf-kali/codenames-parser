@@ -1,0 +1,6 @@
+from codenames_parser.models import Color
+
+CODENAMES_RED = Color(r=250, g=45, b=45)
+CODENAMES_BLUE = Color(r=45, g=115, b=170)
+CODENAMES_YELLOW = Color(r=240, g=215, b=170)
+CODENAMES_COLORS = [CODENAMES_RED, CODENAMES_BLUE, CODENAMES_YELLOW]
