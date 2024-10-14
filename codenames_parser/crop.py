@@ -50,7 +50,7 @@ def crop_by_bounds(image: np.ndarray, horizontal_bounds: AxisBounds, vertical_bo
     end_x = _valid_rho(vertical_bounds.end.rho)
     start_y = _valid_rho(horizontal_bounds.start.rho)
     end_y = _valid_rho(horizontal_bounds.end.rho)
-    cropped = image[start_x:end_x, start_y:end_y]
+    cropped = image[start_y:end_y, start_x:end_x]
     save_debug_image(cropped, title="cropped")
     return cropped
 

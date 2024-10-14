@@ -96,11 +96,11 @@ def _find_rotation_angle(lines: list[Line], max_angle: float) -> float:
 
 
 def _horizontal_diff(theta: float) -> float:
-    return float(np.mod(theta + np.pi / 2, np.pi) - np.pi / 2)
+    return float(theta - np.pi / 2)
 
 
 def _vertical_diff(theta: float) -> float:
-    return float(theta - np.pi / 2)
+    return float(np.mod(theta + np.pi / 2, np.pi) - np.pi / 2)
 
 
 def get_grid_lines(lines: list[Line], max_angle: float = 5) -> GridLines:
