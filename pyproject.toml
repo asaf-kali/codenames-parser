@@ -16,9 +16,10 @@ Issues = "https://github.com/asaf-kali/codenames-parser/issues"
 [tool.poetry.dependencies]
 # Core
 python = "^3.12"
-numpy = "^2.1.2"
-opencv-python = "^4.10.0.84"
-scikit-learn = "^1.5.2"
+# Image processing
+numpy = "^2.1"
+opencv-python = "^4.10"
+# Codenames
 codenames = "^4.1.7"
 
 [tool.poetry.group.test.dependencies]
