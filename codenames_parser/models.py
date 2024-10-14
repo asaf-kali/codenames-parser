@@ -1,6 +1,8 @@
-from typing import Iterable, NamedTuple
+from typing import Generic, Iterable, NamedTuple, TypeVar
 
 import numpy as np
+
+T = TypeVar("T")
 
 
 class Point(NamedTuple):
@@ -48,3 +50,20 @@ class Color(NamedTuple):
 
     def __str__(self) -> str:
         return f"({self.r},{self.g},{self.b})"
+
+
+class Grid(Generic[T]):
+    def __init__(self, row_size: int, rows: list[list[T]] = None):
+        self._row_size = row_size
+        self._rows = rows or []
+
+    def append(self, row: list[T]) -> None:
+        if len(row) != self._row_size:
+            raise ValueError(f"Row size must be {self._row_size}")
+        self._rows.append(row)
+
+    def __getitem__(self, index: int) -> list[T]:
+        return self._rows[index]
+
+    def __len__(self) -> int:
+        return len(self._rows)

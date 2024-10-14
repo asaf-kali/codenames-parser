@@ -2,13 +2,15 @@ import logging
 
 import cv2
 import numpy as np
+from codenames.game.color import CardColor
 
 from codenames_parser.debugging.util import SEPARATOR
+from codenames_parser.models import Grid
 
 log = logging.getLogger(__name__)
 
 
-def classify_cell_colors(cells: list[list[np.ndarray]]) -> list[list[str]]:
+def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
     """
     Classifies the color of each cell.
 

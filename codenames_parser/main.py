@@ -1,24 +1,18 @@
 import logging
 import sys
 
+from codenames.game.color import CardColor
+
 from codenames_parser.align import align_image
 from codenames_parser.color_detection import classify_cell_colors
 from codenames_parser.crop import crop_image
 from codenames_parser.grid_detection import extract_cells
 from codenames_parser.image_reader import read_image
+from codenames_parser.models import Grid
 from scale import scale_down_image
 
 
-def main(image_path: str) -> list[list[str]]:
-    """
-    Main function to process the Codenames board image.
-
-    Args:
-        image_path (str): Path to the input image.
-
-    Returns:
-        list[list[str]]: A 5x5 grid representing the colors of the cells.
-    """
+def main(image_path: str) -> Grid[CardColor]:
     image = read_image(image_path)
     small_image = scale_down_image(image)
     aligned_image = align_image(small_image)
@@ -40,7 +34,8 @@ def entrypoint():
     image_path = sys.argv[1]
     grid = main(image_path)
     for row in grid:
-        print(row)
+        for cell in row:
+            print(cell.emoji, end=" ")
 
 
 if __name__ == "__main__":

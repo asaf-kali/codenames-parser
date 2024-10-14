@@ -7,12 +7,14 @@ from codenames_parser.consts import CODENAMES_COLORS
 from codenames_parser.crop import crop_by_box
 from codenames_parser.debugging.util import SEPARATOR, draw_boxes
 from codenames_parser.mask import color_distance_mask
-from codenames_parser.models import Box
+from codenames_parser.models import Box, Grid
 
 log = logging.getLogger(__name__)
 
+GRID_SIZE = 5
 
-def extract_cells(image: np.ndarray) -> list[np.ndarray]:
+
+def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
     log.info(SEPARATOR)
     log.info("Extracting cells...")
     card_boxes = find_card_boxes(image)
@@ -20,8 +22,20 @@ def extract_cells(image: np.ndarray) -> list[np.ndarray]:
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
     all_card_boxes = _complete_missing_boxes(deduplicated_boxes)
     draw_boxes(image, boxes=all_card_boxes, title="25 boxes")
-    cropped_cells = [crop_by_box(image, box=box) for box in all_card_boxes]
-    return cropped_cells
+    grid = _crop_cells(image, all_card_boxes)
+    return grid
+
+
+def _crop_cells(image: np.ndarray, all_card_boxes: list[Box]) -> Grid[np.ndarray]:
+    grid = Grid(row_size=GRID_SIZE)
+    for i in range(GRID_SIZE):
+        row = []
+        for j in range(GRID_SIZE):
+            box = all_card_boxes[i * 5 + j]
+            cell = crop_by_box(image, box)
+            row.append(cell)
+        grid.append(row)
+    return grid
 
 
 def find_card_boxes(image: np.ndarray) -> list[Box]:
@@ -37,19 +51,67 @@ def find_card_boxes(image: np.ndarray) -> list[Box]:
 
 
 def _deduplicate_boxes(boxes: list[Box]) -> list[Box]:
-    # TODO: Implement deduplication logic
-    # avg_area = float(np.mean([box.area for box in boxes]))
-    pass
+    # Deduplicate boxes based on Intersection over Union (IoU)
+    deduplicated_boxes = []
+    for box in boxes:
+        is_duplicate = False
+        for existing_box in deduplicated_boxes:
+            iou = _box_iou(box, existing_box)
+            if iou > 0.5:
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            deduplicated_boxes.append(box)
+    return deduplicated_boxes
 
 
-def _are_boxes_duplicates(box1: Box, box2: Box, avg_area: float) -> bool:
-    # TODO: Implement deduplication logic
-    return False
+def _box_iou(box1: Box, box2: Box) -> float:
+    # Compute the Intersection over Union (IoU) of two boxes
+    x_left = max(box1.x, box2.x)
+    y_top = max(box1.y, box2.y)
+    x_right = min(box1.x + box1.w, box2.x + box2.w)
+    y_bottom = min(box1.y + box1.h, box2.y + box2.h)
+    if x_right <= x_left or y_bottom <= y_top:
+        return 0.0
+    intersection_area = (x_right - x_left) * (y_bottom - y_top)
+    union_area = box1.area + box2.area - intersection_area
+    iou = intersection_area / union_area
+    return iou
 
 
 def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
     if len(boxes) == 25:
         return boxes
+
+    # Get x and y centers of existing boxes
+    x_centers = np.array([box.x + box.w / 2 for box in boxes])
+    y_centers = np.array([box.y + box.h / 2 for box in boxes])
+
+    # Cluster x and y centers into 5 clusters each
+    from sklearn.cluster import KMeans
+
+    kmeans_x = KMeans(n_clusters=5, random_state=0)
+    kmeans_y = KMeans(n_clusters=5, random_state=0)
+    x_labels = kmeans_x.fit_predict(x_centers.reshape(-1, 1))  # noqa: F841
+    y_labels = kmeans_y.fit_predict(y_centers.reshape(-1, 1))  # noqa: F841
+
+    # Get sorted cluster centers
+    x_cluster_centers = sorted(kmeans_x.cluster_centers_.flatten())
+    y_cluster_centers = sorted(kmeans_y.cluster_centers_.flatten())
+
+    # Compute average width and height of the boxes
+    avg_w = int(np.mean([box.w for box in boxes]))
+    avg_h = int(np.mean([box.h for box in boxes]))
+
+    # Generate the grid of boxes based on cluster centers
+    grid_boxes = []
+    for y_center in y_cluster_centers:
+        for x_center in x_cluster_centers:
+            x = int(x_center - avg_w / 2)
+            y = int(y_center - avg_h / 2)
+            grid_boxes.append(Box(x, y, avg_w, avg_h))
+
+    return grid_boxes
 
 
 def _filter_card_boxes(boxes: list[Box]) -> list[Box]:
