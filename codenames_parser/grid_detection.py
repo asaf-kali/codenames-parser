@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 
 from codenames_parser.consts import CODENAMES_COLORS
-from codenames_parser.debugging.util import SEPARATOR, save_debug_image
-from codenames_parser.mask import apply_mask, color_distance_mask
-from codenames_parser.models import Line
+from codenames_parser.debugging.util import SEPARATOR, draw_boxes, save_debug_image
+from codenames_parser.mask import color_distance_mask
+from codenames_parser.models import Box, Line
 
 log = logging.getLogger(__name__)
 
@@ -28,25 +28,31 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     """
     log.info(SEPARATOR)
     log.info("Extracting cells...")
-    # blurred = blur_image(image)
-    # edges = detect_edges(blurred)
-    # lines = extract_lines(edges, rho=0.2)
-    # draw_lines(image, lines, title="lines after_alignment")
-    color_masks = []
-    for color in CODENAMES_COLORS:
-        color_mask = color_distance_mask(image, color=color)
-        color_masks.append(color_mask)
-    # Apply or on all color masks
-    mask = np.logical_or.reduce(color_masks)
-    masked = apply_mask(image, mask=mask)
-    save_debug_image(masked, title="masked")
-    # draw_lines(masked, lines=draw_grid_lines, title="all_grid_lines")
-    # lines_filtered = _cluster_and_merge_lines(lines, blurred)
-    # _draw_lines(blurred, lines_filtered, title="filtered lines")
-    # intersections = _find_intersections(lines)
-    # _draw_intersections(aligned_image, intersections)
-    # cells = _extract_cells(aligned_image, lines_filtered)
+    masks = [color_distance_mask(image, color=color) for color in CODENAMES_COLORS]
+    boxes = []
+    for mask in masks:
+        color_boxes = find_boxes(image=mask.filtered_negative)
+        boxes.extend(color_boxes)
+    draw_boxes(image, boxes=boxes, title="boxes with masks")
     return []
+
+
+def find_boxes(image: np.ndarray, min_size: int = 10) -> list[Box]:
+    # Convert the mask to grayscale
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Find contours in the grayscale mask
+    contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    bounding_boxes = []
+    for contour in contours:
+        # Get the bounding rectangle for each contour
+        x, y, w, h = cv2.boundingRect(contour)
+        # Filter out non-square-like contours by aspect ratio and minimum size
+        aspect_ratio = w / float(h)
+        if 0.9 <= aspect_ratio <= 1.1 and w > min_size and h > min_size:
+            box = Box(x, y, w, h)
+            bounding_boxes.append(box)
+    return bounding_boxes
 
 
 def _extract_squares(image: np.ndarray) -> list[np.ndarray]:

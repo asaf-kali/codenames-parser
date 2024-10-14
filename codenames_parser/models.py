@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import Iterable, NamedTuple
 
 import numpy as np
 
@@ -6,6 +6,13 @@ import numpy as np
 class Point(NamedTuple):
     x: int
     y: int
+
+
+class Box(NamedTuple):
+    x: int
+    y: int
+    w: int
+    h: int
 
 
 class P1P2(NamedTuple):
@@ -21,6 +28,9 @@ class Line(NamedTuple):
 class GridLines(NamedTuple):
     horizontal: list[Line]
     vertical: list[Line]
+
+    def __iter__(self) -> Iterable[Line]:
+        return iter(self.horizontal + self.vertical)
 
 
 class Color(NamedTuple):

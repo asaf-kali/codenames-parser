@@ -1,11 +1,12 @@
 import logging
 import os
 import time
+from typing import Iterable
 
 import cv2
 import numpy as np
 
-from codenames_parser.models import P1P2, Color, Line, Point
+from codenames_parser.models import P1P2, Box, Color, Line, Point
 
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 run_count = 0
@@ -34,7 +35,7 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
         return
 
 
-def draw_lines(image: np.ndarray, lines: list[Line], title: str) -> np.ndarray:
+def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> np.ndarray:
     # If image is grayscale, convert to BGR
     image = image.copy()
     if len(image.shape) == 2:
@@ -43,6 +44,14 @@ def draw_lines(image: np.ndarray, lines: list[Line], title: str) -> np.ndarray:
         loc = _get_line_draw_params(line)
         color = _pick_line_color(line)
         cv2.line(image, loc.p1, loc.p2, color, 2)
+    save_debug_image(image, title=title)
+    return image
+
+
+def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str) -> np.ndarray:
+    image = image.copy()
+    for box in boxes:
+        cv2.rectangle(image, (box.x, box.y), (box.x + box.w, box.y + box.h), (0, 255, 0), 2)
     save_debug_image(image, title=title)
     return image
 

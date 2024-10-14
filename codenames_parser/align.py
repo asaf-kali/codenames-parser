@@ -138,14 +138,15 @@ def _is_grid_line(diff: float, max_angle: float) -> bool:
     return abs(diff_degrees) < max_angle
 
 
-def blur_image(image: np.ndarray) -> np.ndarray:
+def blur_image(image: np.ndarray, k_size: int = 5) -> np.ndarray:
     if len(image.shape) == 2:
         gray = image
     else:
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Apply Gaussian blur
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    kernel = (k_size, k_size)
+    blurred = cv2.GaussianBlur(gray, kernel, 0)
     save_debug_image(blurred, title="blurred")
     return blurred
 
