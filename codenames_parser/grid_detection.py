@@ -46,7 +46,8 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
         color_grid_lines = _extract_color_grid_lines(image, color)
         grid_lines.horizontal.extend(color_grid_lines.horizontal)
         grid_lines.vertical.extend(color_grid_lines.vertical)
-    draw_lines(image, lines=grid_lines.horizontal + grid_lines.vertical, title="all_grid_lines")
+    draw_grid_lines = grid_lines.horizontal + grid_lines.vertical
+    draw_lines(image, lines=draw_grid_lines, title="all_grid_lines")
     # lines_filtered = _cluster_and_merge_lines(lines, blurred)
     # _draw_lines(blurred, lines_filtered, title="filtered lines")
     # intersections = _find_intersections(lines)

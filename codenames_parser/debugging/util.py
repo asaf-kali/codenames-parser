@@ -36,6 +36,7 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
 
 def draw_lines(image: np.ndarray, lines: list[Line], title: str) -> np.ndarray:
     # If image is grayscale, convert to BGR
+    image = image.copy()
     if len(image.shape) == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     for line in lines:
