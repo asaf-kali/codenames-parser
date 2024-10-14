@@ -25,7 +25,6 @@ codenames = "^4.1.7"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
 coverage = "^7.2"
-pytest-retry = "^1.6"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.1"

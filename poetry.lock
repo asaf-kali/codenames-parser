@@ -1276,23 +1276,6 @@ pluggy = ">=0.12,<2.0"
 testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
-name = "pytest-retry"
-version = "1.6.3"
-description = "Adds the ability to retry flaky tests in CI environments"
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "pytest_retry-1.6.3-py3-none-any.whl", hash = "sha256:e96f7df77ee70b0838d1085f9c3b8b5b7d74bf8947a0baf32e2b8c71b27683c8"},
-    {file = "pytest_retry-1.6.3.tar.gz", hash = "sha256:36ccfa11c8c8f9ddad5e20375182146d040c20c4a791745139c5a99ddf1b557d"},
-]
-
-[package.dependencies]
-pytest = ">=7.0.0"
-
-[package.extras]
-dev = ["black", "flake8", "isort", "mypy"]
-
-[[package]]
 name = "python-gitlab"
 version = "3.15.0"
 description = "Interact with GitLab API"
@@ -1677,4 +1660,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "13bbad8eec750e33860a50210afa66b4bc1590f293535e8a22e190708de6a0fe"
+content-hash = "007c54a7b4101cdea6f2a3a63017f628f082f4fb4d88431e8ebbee712cd314f1"
