@@ -13,14 +13,16 @@ def color_distance_mask(image: np.ndarray, color: Color) -> np.ndarray:
     # Normalize the distance
     max_distance = np.max(norms)
     normalized = norms / max_distance
-    # save_debug_image((normalized * 255).astype(np.uint8), title=f"normalized for {color}")
+    negative = 1 - normalized
+    # negative_image = (255 * negative).astype(np.uint8)
+    # save_debug_image(negative_image, title=f"normalized for {color}")
     # Histogram equalization
-    # equalized = cv2.equalizeHist((normalized * 255).astype(np.uint8))
+    # equalized = cv2.equalizeHist(negative_image)
     # save_debug_image(equalized, title=f"equalized for {color}")
-    # Take only top 30% of pixels
-    threshold = np.percentile(normalized, 70)
-    mask = normalized > threshold
-    filtered = cv2.multiply(image, np.stack([mask] * 3, axis=-1).astype(np.uint8))
+    # Take only top X of pixels
+    threshold = np.percentile(negative, 80)
+    mask = negative > threshold
+    filtered = apply_mask(image, mask=mask)
     save_debug_image(filtered, title=f"threshold for {color}")
     return mask
 

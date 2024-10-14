@@ -3,16 +3,10 @@ import logging
 import cv2
 import numpy as np
 
-from codenames_parser.align import (
-    blur_image,
-    detect_edges,
-    extract_lines,
-    get_grid_lines,
-)
 from codenames_parser.consts import CODENAMES_COLORS
-from codenames_parser.debugging.util import SEPARATOR, draw_lines, save_debug_image
+from codenames_parser.debugging.util import SEPARATOR, save_debug_image
 from codenames_parser.mask import apply_mask, color_distance_mask
-from codenames_parser.models import Color, GridLines, Line
+from codenames_parser.models import Line
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +34,7 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     # draw_lines(image, lines, title="lines after_alignment")
     color_masks = []
     for color in CODENAMES_COLORS:
-        color_mask = color_distance_mask(image, color)
+        color_mask = color_distance_mask(image, color=color)
         color_masks.append(color_mask)
     # Apply or on all color masks
     mask = np.logical_or.reduce(color_masks)
@@ -53,32 +47,6 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
     # _draw_intersections(aligned_image, intersections)
     # cells = _extract_cells(aligned_image, lines_filtered)
     return []
-
-
-def _small_extract_grid_lines(image: np.ndarray) -> GridLines:
-    blurred = blur_image(image)
-    edges = detect_edges(blurred)
-    lines = extract_lines(edges, rho=0.5)
-    grid_lines = get_grid_lines(lines)
-    draw_lines(image, lines=grid_lines.horizontal + grid_lines.vertical, title="grid lines")
-    return grid_lines
-
-
-def _extract_color_grid_lines(image: np.ndarray, color: Color) -> GridLines:
-    """
-    Extracts the horizontal and vertical grid lines, filter the image by color.
-    """
-    log.info(SEPARATOR)
-    log.info(f"Extracting grid lines for {color}...")
-    mask = color_distance_mask(image, color=color)
-    filtered = cv2.multiply(image, np.stack([mask] * 3, axis=-1).astype(np.uint8))
-    save_debug_image(filtered, title=f"filtered {color}")
-    blurred = blur_image(filtered)
-    edges = detect_edges(blurred)
-    lines = extract_lines(edges, rho=0.5)
-    grid_lines = get_grid_lines(lines)
-    draw_lines(filtered, lines=grid_lines.horizontal + grid_lines.vertical, title=f"grid lines {color}")
-    return grid_lines
 
 
 def _extract_squares(image: np.ndarray) -> list[np.ndarray]:
@@ -139,19 +107,6 @@ def _cluster_and_merge_lines(lines: list[Line], image: np.ndarray | None) -> lis
         line = Line(rho, theta)
         merged_lines.append(line)
     return merged_lines
-
-
-# def _find_intersections(lines: Lines) -> list[np.ndarray]:
-#     intersections = []
-#     for h_line in lines.horizontal:
-#         for v_line in lines.vertical:
-#             rho1, theta1 = h_line
-#             rho2, theta2 = v_line
-#             A = np.array([[np.cos(theta1), np.sin(theta1)], [np.cos(theta2), np.sin(theta2)]])
-#             b = np.array([rho1, rho2])
-#             x0, y0 = np.linalg.solve(A, b)
-#             intersections.append(np.array([x0, y0]))
-#     return intersections
 
 
 def _draw_intersections(image: np.ndarray, intersections: list[np.ndarray]) -> np.ndarray:
