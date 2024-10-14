@@ -34,10 +34,31 @@ def extract_cells(image: np.ndarray) -> list[list[np.ndarray]]:
         color_boxes = find_boxes(image=mask.filtered_negative)
         boxes.extend(color_boxes)
     draw_boxes(image, boxes=boxes, title="boxes with masks")
+    card_boxes = filter_card_boxes(boxes)
+    draw_boxes(image, boxes=card_boxes, title="card boxes")
     return []
 
 
-def find_boxes(image: np.ndarray, min_size: int = 10) -> list[Box]:
+def filter_card_boxes(boxes: list[Box]) -> list[Box]:
+    common_area = detect_common_box_area(boxes)
+    filtered_boxes = [box for box in boxes if _is_card_box(box, common_area)]
+    return filtered_boxes
+
+
+def _is_card_box(box: Box, common_area: int, ratio_diff: float = 0.2) -> bool:
+    ratio_min, ratio_max = 1 - ratio_diff, 1 + ratio_diff
+    ratio = box.area / common_area
+    return ratio_min <= ratio <= ratio_max
+
+
+def detect_common_box_area(boxes: list[Box]) -> int:
+    areas = [box.area for box in boxes]
+    percentile_50 = np.percentile(areas, q=50)
+    return int(percentile_50)
+
+
+def find_boxes(image: np.ndarray, ratio_diff: float = 0.2, min_size: int = 10) -> list[Box]:
+    ratio_min, ratio_max = 1 - ratio_diff, 1 + ratio_diff
     # Convert the mask to grayscale
     if len(image.shape) == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -49,7 +70,7 @@ def find_boxes(image: np.ndarray, min_size: int = 10) -> list[Box]:
         x, y, w, h = cv2.boundingRect(contour)
         # Filter out non-square-like contours by aspect ratio and minimum size
         aspect_ratio = w / float(h)
-        if 0.9 <= aspect_ratio <= 1.1 and w > min_size and h > min_size:
+        if ratio_min <= aspect_ratio <= ratio_max and w > min_size and h > min_size:
             box = Box(x, y, w, h)
             bounding_boxes.append(box)
     return bounding_boxes

@@ -14,6 +14,10 @@ class Box(NamedTuple):
     w: int
     h: int
 
+    @property
+    def area(self) -> int:
+        return self.w * self.h
+
 
 class P1P2(NamedTuple):
     p1: Point
