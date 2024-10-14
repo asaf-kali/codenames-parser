@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+import numpy as np
+
 
 class Point(NamedTuple):
     x: int
@@ -25,3 +27,10 @@ class Color(NamedTuple):
     b: int
     g: int
     r: int
+
+    @property
+    def vector(self) -> np.ndarray:
+        return np.array([self.b, self.g, self.r])
+
+    def __str__(self) -> str:
+        return f"({self.r},{self.g},{self.b})"
