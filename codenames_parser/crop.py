@@ -75,9 +75,6 @@ def find_crop_bounds(lines: list[Line]) -> AxisBounds:
     """
     # Sort lines by rho
     lines = sorted(lines, key=lambda x: x.rho)
-    # Skip the first and last lines, which are possibly image borders.
-    # We anyway expect the grid lines to be in the middle of the picture, so this should be fine.
-    # TODO: Find a better way to handle this (check if the lines are close to the image borders)
-    start = lines[1]
-    end = lines[-2]
+    start = lines[0]
+    end = lines[-1]
     return AxisBounds(start=start, end=end)
