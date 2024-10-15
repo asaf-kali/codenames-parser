@@ -61,7 +61,7 @@ def crop_by_box(image: np.ndarray, box: Box) -> np.ndarray:
     Crop the input image according to the given box.
     """
     cropped = image[box.y : box.y + box.h, box.x : box.x + box.w]
-    save_debug_image(cropped, title="cropped cell")
+    # save_debug_image(cropped, title="cropped cell")
     return cropped
 
 

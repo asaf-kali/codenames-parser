@@ -79,6 +79,9 @@ class Grid(Generic[T]):
             raise ValueError(f"Row size must be {self.row_size}")
         self._rows.append(row)
 
+    def __iter__(self):
+        return iter(self._rows)
+
     def __getitem__(self, index: int) -> list[T]:
         return self._rows[index]
 

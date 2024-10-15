@@ -2,16 +2,16 @@ from codenames.game.color import CardColor
 
 from codenames_parser.models import Color
 
-CODENAMES_RED = Color(r=250, g=45, b=45)
 CODENAMES_BLUE = Color(r=45, g=115, b=170)
-CODENAMES_YELLOW = Color(r=240, g=215, b=170)
+CODENAMES_RED = Color(r=250, g=45, b=45)
+CODENAMES_GRAY = Color(r=240, g=215, b=170)
 CODENAMES_BLACK = Color(r=10, g=10, b=10)
-CODENAMES_COLORS = [CODENAMES_RED, CODENAMES_BLUE, CODENAMES_YELLOW]
+CODENAMES_COLORS = [CODENAMES_BLUE, CODENAMES_RED, CODENAMES_GRAY]
 
 COLOR_TO_CARD_COLOR: dict[Color, CardColor] = {
-    CODENAMES_RED: CardColor.RED,
     CODENAMES_BLUE: CardColor.BLUE,
-    CODENAMES_YELLOW: CardColor.GRAY,
+    CODENAMES_RED: CardColor.RED,
+    CODENAMES_GRAY: CardColor.GRAY,
     CODENAMES_BLACK: CardColor.BLACK,
 }
 
