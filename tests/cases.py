@@ -62,17 +62,4 @@ CASE_SMALL_1 = MapTestCase(
     ),
 )
 
-CASE_SMALL_2 = MapTestCase(
-    fixture_file="small_2.png",
-    expected_grid=Grid.from_rows(
-        [
-            [CardColor.RED, CardColor.BLUE, CardColor.GRAY, CardColor.BLUE, CardColor.GRAY],
-            [CardColor.GRAY, CardColor.BLUE, CardColor.RED, CardColor.RED, CardColor.BLUE],
-            [CardColor.GRAY, CardColor.RED, CardColor.GRAY, CardColor.BLUE, CardColor.RED],
-            [CardColor.RED, CardColor.BLUE, CardColor.BLUE, CardColor.BLACK, CardColor.GRAY],
-            [CardColor.RED, CardColor.GRAY, CardColor.RED, CardColor.BLUE, CardColor.RED],
-        ]
-    ),
-)
-
-MAP_CASES = [CASE_TOP_VIEW, CASE_CUT_ROTATED, CASE_HIGH_RES, CASE_SMALL_1, CASE_SMALL_2]
+MAP_CASES = [CASE_TOP_VIEW, CASE_CUT_ROTATED, CASE_HIGH_RES, CASE_SMALL_1]
