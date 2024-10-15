@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from codenames_parser.debugging.util import save_debug_image
+from codenames_parser.common.debug_util import save_debug_image
 
 MAX_DIMENSION = 800
 

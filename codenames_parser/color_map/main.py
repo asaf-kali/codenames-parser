@@ -3,12 +3,12 @@ import sys
 
 from codenames.game.color import CardColor
 
-from codenames_parser.align import align_image
-from codenames_parser.color_detection import classify_cell_colors
-from codenames_parser.crop import crop_image
-from codenames_parser.grid_detection import extract_cells
-from codenames_parser.image_reader import read_image
-from codenames_parser.models import Grid
+from codenames_parser.color_map.align import align_image
+from codenames_parser.color_map.color_detection import classify_cell_colors
+from codenames_parser.color_map.crop import crop_image
+from codenames_parser.color_map.grid_detection import extract_cells
+from codenames_parser.color_map.image_reader import read_image
+from codenames_parser.color_map.models import Grid
 from scale import scale_down_image
 
 

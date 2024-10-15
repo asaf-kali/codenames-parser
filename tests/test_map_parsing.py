@@ -4,8 +4,8 @@ import os
 import pytest
 from codenames.game.color import CardColor
 
-from codenames_parser.main import main
-from codenames_parser.models import CellDiff, Grid
+from codenames_parser.color_map.main import main
+from codenames_parser.color_map.models import CellDiff, Grid
 from tests.cases import MAP_CASES
 from tests.fixtures import get_fixture_path
 

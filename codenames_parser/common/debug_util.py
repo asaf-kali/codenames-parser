@@ -6,7 +6,7 @@ from typing import Iterable
 import cv2
 import numpy as np
 
-from codenames_parser.models import P1P2, Box, Color, Line, Point
+from codenames_parser.color_map.models import P1P2, Box, Color, Line, Point
 
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 run_count = 0

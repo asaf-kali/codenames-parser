@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from codenames.game.color import CardColor
 
-from codenames_parser.models import Grid
+from codenames_parser.color_map.models import Grid
 
 
 class MapTestCase(NamedTuple):
