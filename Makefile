@@ -8,6 +8,7 @@ else
 endif
 SYNC=--sync
 .PHONY: build
+CASE=cut_rotated
 
 # Install
 
@@ -80,13 +81,13 @@ build-and-upload: build upload
 
 gif:
 	ffmpeg \
-  		-framerate 2 \
+  		-framerate 1.5 \
 		-pattern_type glob \
-		-i 'exports/frames/*.jpg' \
-		-r 2 \
+		-i 'debug/$(CASE)/*.jpg' \
+		-r 1.5 \
 		-vf "scale=512:-1, pad=512:512:(ow-iw)/2:(oh-ih)/2" \
 		-pix_fmt yuv420p \
-		-y exports/video.gif
+		-y exports/$(CASE).gif
 
 # Semantic release
 
