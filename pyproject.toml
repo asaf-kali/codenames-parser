@@ -21,6 +21,8 @@ numpy = "^2.1"
 opencv-python = "^4.10"
 # Codenames
 codenames = "^4.1.7"
+scikit-learn = "^1.5.2"
+scikit-image = "^0.24.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
