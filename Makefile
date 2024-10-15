@@ -76,6 +76,18 @@ upload:
 
 build-and-upload: build upload
 
+# Video
+
+gif:
+	ffmpeg \
+		-framerate 2 \
+		-pattern_type glob \
+		-i 'exports/frames/*.jpg' \
+		-r 15 \
+		-vf "scale=512:-1, pad=512:512:(ow-iw)/2:(oh-ih)/2" \
+		-pix_fmt yuv420p \
+		exports/video.gif
+
 # Semantic release
 
 semrel:
