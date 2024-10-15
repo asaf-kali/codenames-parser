@@ -10,6 +10,19 @@ class MapTestCase(NamedTuple):
     expected_grid: Grid[CardColor]
 
 
+CASE_TOP_VIEW = MapTestCase(
+    fixture_file="top_view.png",
+    expected_grid=Grid.from_rows(
+        [
+            [CardColor.GRAY, CardColor.RED, CardColor.BLUE, CardColor.BLUE, CardColor.RED],
+            [CardColor.GRAY, CardColor.BLUE, CardColor.RED, CardColor.GRAY, CardColor.BLUE],
+            [CardColor.BLUE, CardColor.RED, CardColor.RED, CardColor.BLUE, CardColor.GRAY],
+            [CardColor.BLUE, CardColor.RED, CardColor.RED, CardColor.GRAY, CardColor.GRAY],
+            [CardColor.GRAY, CardColor.BLUE, CardColor.BLACK, CardColor.RED, CardColor.BLUE],
+        ]
+    ),
+)
+
 CASE_CUT_ROTATED = MapTestCase(
     fixture_file="cut_rotated.png",
     expected_grid=Grid.from_rows(
@@ -62,4 +75,4 @@ CASE_SMALL_2 = MapTestCase(
     ),
 )
 
-MAP_CASES = [CASE_CUT_ROTATED, CASE_HIGH_RES, CASE_SMALL_1]
+MAP_CASES = [CASE_TOP_VIEW, CASE_CUT_ROTATED, CASE_HIGH_RES, CASE_SMALL_1, CASE_SMALL_2]
