@@ -3,6 +3,8 @@
 mkdir -p exports
 
 CASE=$1
+FPS=$2
+
 SOURCE_DIR="debug/${CASE}"
 EXPORT_DIR="exports"
 EXPORT_FILE="${EXPORT_DIR}/${CASE}.gif"
@@ -21,10 +23,10 @@ fi
 
 # Create gif
 ffmpeg \
-  -framerate 1.5 \
+  -framerate ${FPS} \
   -pattern_type glob \
   -i "${SOURCE_DIR}/*.jpg" \
-  -r 1.5 \
+  -r ${FPS} \
   -vf "scale=512:-1, pad=512:512:(ow-iw)/2:(oh-ih)/2" \
   -pix_fmt yuv420p \
   -y ${EXPORT_FILE}

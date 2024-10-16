@@ -8,7 +8,10 @@ else
 endif
 SYNC=--sync
 .PHONY: build
+
+# gif arguments
 CASE=cut_rotated
+FPS=1.5
 
 # Install
 
@@ -80,7 +83,7 @@ build-and-upload: build upload
 # Video
 
 gif:
-	bash ./scripts/create_gif.sh $(CASE)
+	bash ./scripts/create_gif.sh $(CASE) $(FPS)
 	$(OPEN_FILE_COMMAND) exports/$(CASE).gif
 
 # Semantic release
