@@ -2,7 +2,7 @@
 from codenames.game.card import Card
 
 from codenames_parser.board.card_parser import parse_cards
-from codenames_parser.color_map.grid_detection import extract_cells
+from codenames_parser.board.grid_detection import extract_cells
 from codenames_parser.common.align import align_image
 from codenames_parser.common.crop import crop_image
 from codenames_parser.common.image_reader import read_image
