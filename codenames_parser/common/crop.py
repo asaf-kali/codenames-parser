@@ -31,8 +31,12 @@ def crop_image(image: np.ndarray) -> np.ndarray:
     lines = extract_lines(edges, rho=1)
     grid_lines = get_grid_lines(lines, max_angle=1)
     draw_lines(image, lines=grid_lines, title="crop grid lines")
-    horizontal_bounds = find_crop_bounds(lines=grid_lines.horizontal)
-    vertical_bounds = find_crop_bounds(lines=grid_lines.vertical)
+    try:
+        horizontal_bounds = find_crop_bounds(lines=grid_lines.horizontal)
+        vertical_bounds = find_crop_bounds(lines=grid_lines.vertical)
+    except IndexError:
+        log.info("Missing grid lines, skipping cropping")
+        return image
     x = [*horizontal_bounds, *vertical_bounds]
     draw_lines(image, lines=x, title="crop bounds")
     cropped = crop_by_bounds(image, horizontal_bounds=horizontal_bounds, vertical_bounds=vertical_bounds)

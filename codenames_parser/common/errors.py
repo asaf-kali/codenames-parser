@@ -1,4 +1,4 @@
-class MissingGridError(Exception):
+class NotEnoughBoxesError(Exception):
     pass
 
 

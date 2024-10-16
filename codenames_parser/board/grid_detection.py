@@ -8,7 +8,10 @@ from scipy.optimize import linear_sum_assignment
 from codenames_parser.color_map.mask import color_distance_mask
 from codenames_parser.common.align import blur_image
 from codenames_parser.common.debug_util import SEPARATOR, draw_boxes, save_debug_image
-from codenames_parser.common.errors import GridExtractionFailedError, MissingGridError
+from codenames_parser.common.errors import (
+    GridExtractionFailedError,
+    NotEnoughBoxesError,
+)
 from codenames_parser.common.grid_detection import (
     GRID_HEIGHT,
     GRID_SIZE,
@@ -25,7 +28,7 @@ log = logging.getLogger(__name__)
 WHITE = Color(255, 255, 255)
 CARD_RATIO_MAX = 1.8
 UNCERTAIN_BOX_FACTOR = 1.2
-COLOR_MASK_PERCENTILES = [80, 70, 60, 50, 40]
+COLOR_MASK_PERCENTILES = [80, 75, 70, 65, 60, 50]
 
 
 @dataclass
@@ -41,8 +44,9 @@ def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
         log.info(f"Trying with percentile {percentile}")
         try:
             return _extract_cells_iteration(image, color_mask_percentile=percentile)
-        except MissingGridError:
-            pass
+        except NotEnoughBoxesError:
+            log.info(SEPARATOR)
+            log.info("Not enough boxes to complete the grid, trying with a lower color mask percentile")
     log.error("Failed to extract card cells")
     raise GridExtractionFailedError()
 
@@ -73,7 +77,8 @@ def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
     """
     Complete missing boxes in the list to reach the expected GRID_SIZE.
     Boxes might not be exactly aligned in a grid, so we can't assume constant row and column sizes.
-    We need to understand which boxes are missing, and then try to assume their positions.
+    We need to understand which boxes are missing, and then try to assume their positions,
+    based on the found boxes in their row and column.
     """
     # Extract the centers of the boxes
     x_centers = np.array([box.x_center for box in boxes])
@@ -83,17 +88,24 @@ def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
     # Compute the expected grid positions
     min_x_center, max_x_center = np.min(x_centers), np.max(x_centers)
     min_y_center, max_y_center = np.min(y_centers), np.max(y_centers)
-
     expected_x_positions = np.linspace(min_x_center, max_x_center, GRID_WIDTH)
     expected_y_positions = np.linspace(min_y_center, max_y_center, GRID_HEIGHT)
-
     grid_positions = [Point(x, y) for y in expected_y_positions for x in expected_x_positions]
+
+    # Check if we have enough boxes to complete the grid
+    average_width = np.mean([box.x_max - box.x_min for box in boxes])
+    average_height = np.mean([box.y_max - box.y_min for box in boxes])
+    log.info(f"Average box width, height: ({average_width:.2f}, {average_height:.2f})")
+    expected_x_diff = expected_x_positions[1] - expected_x_positions[0]
+    expected_y_diff = expected_y_positions[1] - expected_y_positions[0]
+    log.info(f"Expected x, y diff: ({expected_x_diff:.2f}, {expected_y_diff:.2f})")
+    if expected_x_diff < average_width or expected_y_diff < average_height:
+        raise NotEnoughBoxesError()
 
     # Build the cost matrix between detected boxes and grid positions
     num_boxes = len(boxes)
     num_grid_positions = GRID_SIZE
     cost_matrix = np.zeros((num_boxes, num_grid_positions))
-
     for i in range(num_boxes):
         for j in range(num_grid_positions):
             diff_x = boxes_positions[i][0] - grid_positions[j][0]
@@ -102,13 +114,10 @@ def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
 
     # Use linear sum assignment to assign boxes to grid positions
     box_idx, grid_idx = linear_sum_assignment(cost_matrix)
+    assigned_boxes = {j: boxes[i] for i, j in zip(box_idx, grid_idx)}
 
     # Map the assignments
-    assigned_boxes = {j: boxes[i] for i, j in zip(box_idx, grid_idx)}
     grid_positions = _predict_missing_boxes_centers(assigned_boxes=assigned_boxes, grid_positions=grid_positions)
-    average_width = np.mean([box.x_max - box.x_min for box in boxes])
-    average_height = np.mean([box.y_max - box.y_min for box in boxes])
-    log.info(f"Average box width, height: ({average_width:.2f}, {average_height:.2f})")
     width_uncertain = average_width * UNCERTAIN_BOX_FACTOR
     height_uncertain = average_height * UNCERTAIN_BOX_FACTOR
     width_offset = (width_uncertain - average_width) / 2
@@ -144,8 +153,8 @@ def _predict_missing_boxes_centers(assigned_boxes: dict[int, Box], grid_position
         x_positions = [assigned_boxes[j].x_center for j in row_col_indexes.col if j not in missing_indexes]
         y_positions = [assigned_boxes[j].y_center for j in row_col_indexes.row if j not in missing_indexes]
         if not x_positions or not y_positions:
-            log.error(f"Missing box {i} has no neighbors")
-            raise MissingGridError()
+            log.info(f"Missing box {i} does not have enough neighbors")
+            continue
         x_center = int(np.mean(x_positions))
         y_center = int(np.mean(y_positions))
         new_expected_center = Point(x_center, y_center)
