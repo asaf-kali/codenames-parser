@@ -4,8 +4,8 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from codenames_parser.color_map.models import GridLines, Line
 from codenames_parser.common.debug_util import SEPARATOR, draw_lines, save_debug_image
+from codenames_parser.common.models import GridLines, Line
 
 log = logging.getLogger(__name__)
 

@@ -3,14 +3,14 @@ from typing import NamedTuple
 
 import numpy as np
 
-from codenames_parser.color_map.align import (
+from codenames_parser.common.align import (
     blur_image,
     detect_edges,
     extract_lines,
     get_grid_lines,
 )
-from codenames_parser.color_map.models import Box, Line
 from codenames_parser.common.debug_util import SEPARATOR, draw_lines, save_debug_image
+from codenames_parser.common.models import Box, Line
 
 log = logging.getLogger(__name__)
 

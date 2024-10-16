@@ -3,8 +3,8 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from codenames_parser.color_map.models import Color
 from codenames_parser.common.debug_util import save_debug_image
+from codenames_parser.common.models import Color
 
 
 class ColorDistanceResult(NamedTuple):

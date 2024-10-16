@@ -4,10 +4,10 @@ import cv2
 import numpy as np
 
 from codenames_parser.color_map.consts import CODENAMES_COLORS
-from codenames_parser.color_map.crop import crop_by_box
 from codenames_parser.color_map.mask import color_distance_mask
-from codenames_parser.color_map.models import Box, Grid
+from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.debug_util import SEPARATOR, draw_boxes
+from codenames_parser.common.models import Box, Grid
 
 log = logging.getLogger(__name__)
 

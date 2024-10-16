@@ -1,6 +1,6 @@
 from codenames.game.color import CardColor
 
-from codenames_parser.color_map.models import Color
+from codenames_parser.common.models import Color
 
 CODENAMES_BLUE = Color(r=45, g=115, b=170)
 CODENAMES_RED = Color(r=250, g=45, b=45)

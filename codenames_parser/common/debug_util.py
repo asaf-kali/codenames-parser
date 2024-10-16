@@ -6,7 +6,7 @@ from typing import Iterable
 import cv2
 import numpy as np
 
-from codenames_parser.color_map.models import P1P2, Box, Color, Line, Point
+from codenames_parser.common.models import P1P2, Box, Color, Line, Point
 
 
 class Counter:

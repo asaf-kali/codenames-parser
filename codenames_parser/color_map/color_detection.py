@@ -5,8 +5,8 @@ from codenames.game.color import CardColor
 from sklearn.cluster import KMeans
 
 from codenames_parser.color_map.consts import CARD_COLOR_TO_COLOR
-from codenames_parser.color_map.models import Grid
 from codenames_parser.common.debug_util import SEPARATOR
+from codenames_parser.common.models import Grid
 
 log = logging.getLogger(__name__)
 

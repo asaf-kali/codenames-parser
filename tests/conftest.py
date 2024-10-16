@@ -1,3 +1,3 @@
-from codenames_parser.color_map.main import configure_logging
+from codenames_parser.common.logging import configure_logging
 
 configure_logging()
