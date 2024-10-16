@@ -1,3 +1,4 @@
+# pylint: disable=R0801
 import sys
 
 from codenames_parser.color_map.parser import parse_color_map
