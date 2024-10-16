@@ -10,6 +10,18 @@ class Point(NamedTuple):
     x: int
     y: int
 
+    def __add__(self, other):
+        return Point(self.x + other.x, self.y + other.y)
+
+    def __neg__(self):
+        return Point(-self.x, -self.y)
+
+    def __sub__(self, other):
+        return self.__add__(-other)
+
+    def __str__(self):
+        return f"({self.x:.0f}, {self.y:.0f})"
+
 
 class Box(NamedTuple):
     x: int
@@ -40,6 +52,10 @@ class Box(NamedTuple):
     @property
     def y_center(self) -> int:
         return self.y + self.h // 2
+
+    @property
+    def center(self) -> Point:
+        return Point(self.x_center, self.y_center)
 
     @property
     def area(self) -> int:
