@@ -9,15 +9,10 @@ from codenames_parser.color_map.align import (
     extract_lines,
     get_grid_lines,
 )
-from codenames_parser.color_map.models import Box
+from codenames_parser.color_map.models import Box, Line
 from codenames_parser.common.debug_util import SEPARATOR, draw_lines, save_debug_image
 
 log = logging.getLogger(__name__)
-
-
-class Line(NamedTuple):
-    rho: float  # distance from the origin
-    theta: float  # angle in radians
 
 
 class AxisBounds(NamedTuple):
@@ -61,7 +56,7 @@ def crop_by_box(image: np.ndarray, box: Box) -> np.ndarray:
     """
     Crop the input image according to the given box.
     """
-    cropped = image[box.y : box.y + box.h, box.x : box.x + box.w]
+    cropped = image[box.y: box.y + box.h, box.x: box.x + box.w]
     # save_debug_image(cropped, title="cropped cell")
     return cropped
 

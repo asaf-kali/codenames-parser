@@ -1,4 +1,5 @@
-from typing import Generic, Iterable, NamedTuple, TypeVar
+from dataclasses import dataclass
+from typing import Generic, Iterable, Iterator, NamedTuple, TypeVar
 
 import numpy as np
 
@@ -31,12 +32,17 @@ class Line(NamedTuple):
     theta: float  # angle in radians
 
 
-class GridLines(NamedTuple):
+@dataclass
+class GridLines(Iterable[Line]):
     horizontal: list[Line]
     vertical: list[Line]
 
-    def __iter__(self) -> Iterable[Line]:
-        return iter(self.horizontal + self.vertical)
+    @property
+    def lines(self) -> list[Line]:
+        return self.horizontal + self.vertical
+
+    def __iter__(self) -> Iterator[Line]:  # type: ignore
+        return iter(self.lines)
 
 
 class Color(NamedTuple):
@@ -55,21 +61,21 @@ class Color(NamedTuple):
 class CellDiff(NamedTuple):
     row: int
     col: int
-    value_self: T
-    value_other: T
+    value_self: T  # type: ignore[valid-type]
+    value_other: T  # type: ignore[valid-type]
 
 
 class Grid(Generic[T]):
     def __init__(self, row_size: int):
         self.row_size = row_size
-        self._rows = []
+        self._rows: list[list[T]] = []
 
     @staticmethod
     def from_rows(rows: list[list[T]]) -> "Grid[T]":
         if len(rows) == 0:
             raise ValueError("Rows cannot be empty")
         row_size = len(rows[0])
-        grid = Grid(row_size)
+        grid: Grid[T] = Grid(row_size)
         for row in rows:
             grid.append(row)
         return grid

@@ -16,8 +16,8 @@ MIN_ROTATION_ANGLE = 0.01
 def align_image(image: np.ndarray) -> np.ndarray:
     # TODO: Handle tilt
     count = 1
-    rho = 1
-    max_angle = 20
+    rho = 1.0
+    max_angle = 20.0
     log.info(SEPARATOR)
     log.info("Starting image alignment...")
     while True:
@@ -79,19 +79,20 @@ def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
 
 def _find_rotation_angle(lines: list[Line], max_angle: float) -> float:
     grid_lines = get_grid_lines(lines, max_angle=max_angle)
-    sum = count = 0
+    angle_sum = 0.0
+    count = 0
     if grid_lines.horizontal:
         horizontal_diff = np.mean([_horizontal_diff(line.theta) for line in grid_lines.horizontal])
-        sum += horizontal_diff
+        angle_sum += float(horizontal_diff)
         count += 1
     if grid_lines.vertical:
         vertical_diff = np.mean([_vertical_diff(line.theta) for line in grid_lines.vertical])
-        sum += vertical_diff
+        angle_sum += float(vertical_diff)
         count += 1
     if count == 0:
         return 0
-    angle = sum / count
-    angle_degrees = np.degrees(angle)
+    angle_avg = angle_sum / count
+    angle_degrees = np.degrees(angle_avg)
     return angle_degrees
 
 

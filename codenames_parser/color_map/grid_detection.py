@@ -28,7 +28,7 @@ def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
 
 
 def _crop_cells(image: np.ndarray, all_card_boxes: list[Box]) -> Grid[np.ndarray]:
-    grid = Grid(row_size=GRID_SIDE)
+    grid: Grid[np.ndarray] = Grid(row_size=GRID_SIDE)
     for i in range(GRID_SIDE):
         row = []
         for j in range(GRID_SIDE):
@@ -53,7 +53,7 @@ def find_card_boxes(image: np.ndarray) -> list[Box]:
 
 def _deduplicate_boxes(boxes: list[Box]) -> list[Box]:
     # Deduplicate boxes based on Intersection over Union (IoU)
-    deduplicated_boxes = []
+    deduplicated_boxes: list[Box] = []
     for box in boxes:
         is_duplicate = False
         for existing_box in deduplicated_boxes:
