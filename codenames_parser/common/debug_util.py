@@ -8,8 +8,27 @@ import numpy as np
 
 from codenames_parser.color_map.models import P1P2, Box, Color, Line, Point
 
+
+class Counter:
+    def __init__(self):
+        self.count = 0
+
+    def add(self):
+        self.count += 1
+
+    def total(self):
+        return self.count
+
+    def __int__(self):
+        return self.count
+
+    def __str__(self):
+        return str(self.count)
+
+
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
-run_count = 0
+LINE_DRAW_SIZE = 1000
+RUN_COUNT = Counter()
 SEPARATOR = "---------------------------------"
 log = logging.getLogger(__name__)
 
@@ -18,13 +37,12 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
     debug_disabled = os.getenv("DEBUG_DISABLED", "false").lower() in ["true", "1"]
     if debug_disabled:
         return
-    global run_count
     debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
     run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))
     run_folder = os.path.join(debug_dir, run_id)
     os.makedirs(run_folder, exist_ok=True)
-    run_count += 1
-    file_name = f"{run_count:03d}: {title}.jpg"
+    RUN_COUNT.add()
+    file_name = f"{RUN_COUNT:03d}: {title}.jpg"
     file_path = os.path.join(run_folder, file_name)
     try:
         cv2.imwrite(file_path, image)
@@ -57,16 +75,15 @@ def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str) -> np.ndarra
 
 
 def _get_line_draw_params(line: Line) -> P1P2:
-    SIZE = 1000
     rho, theta = line
     a = np.cos(theta)
     b = np.sin(theta)
     x0 = a * rho
     y0 = b * rho
-    x1 = int(x0 + SIZE * (-b))
-    x2 = int(x0 - SIZE * (-b))
-    y1 = int(y0 + SIZE * (a))
-    y2 = int(y0 - SIZE * (a))
+    x1 = int(x0 + LINE_DRAW_SIZE * (-b))
+    x2 = int(x0 - LINE_DRAW_SIZE * (-b))
+    y1 = int(y0 + LINE_DRAW_SIZE * (a))
+    y2 = int(y0 - LINE_DRAW_SIZE * (a))
     p1 = Point(x1, y1)
     p2 = Point(x2, y2)
     return P1P2(p1, p2)
