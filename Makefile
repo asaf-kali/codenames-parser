@@ -80,14 +80,8 @@ build-and-upload: build upload
 # Video
 
 gif:
-	ffmpeg \
-  		-framerate 1.5 \
-		-pattern_type glob \
-		-i 'debug/$(CASE)/*.jpg' \
-		-r 1.5 \
-		-vf "scale=512:-1, pad=512:512:(ow-iw)/2:(oh-ih)/2" \
-		-pix_fmt yuv420p \
-		-y exports/$(CASE).gif
+	bash ./scripts/create_gif.sh $(CASE)
+	$(OPEN_FILE_COMMAND) exports/$(CASE).gif
 
 # Semantic release
 

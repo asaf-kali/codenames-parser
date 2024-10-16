@@ -25,6 +25,9 @@ class Counter:
     def __str__(self):
         return str(self.count)
 
+    def __format__(self, format_spec):
+        return format(self.count, format_spec)
+
 
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 LINE_DRAW_SIZE = 1000
@@ -68,6 +71,8 @@ def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> np.ndarr
 
 def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str) -> np.ndarray:
     image = image.copy()
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     for box in boxes:
         cv2.rectangle(image, (box.x, box.y), (box.x + box.w, box.y + box.h), (0, 255, 0), 2)
     save_debug_image(image, title=title)

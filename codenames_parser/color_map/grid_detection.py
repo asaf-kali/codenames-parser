@@ -149,4 +149,5 @@ def find_boxes(image: np.ndarray, ratio_diff: float = 0.2, min_size: int = 10) -
         if ratio_min <= aspect_ratio <= ratio_max and w > min_size and h > min_size:
             box = Box(x, y, w, h)
             bounding_boxes.append(box)
+    draw_boxes(image, boxes=bounding_boxes, title="color boxes")
     return bounding_boxes
