@@ -1,9 +1,14 @@
+import logging
+from typing import Iterable
+
 import cv2
 import numpy as np
+from sklearn.cluster import KMeans
 
 from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.models import Box, Grid
 
+log = logging.getLogger(__name__)
 GRID_SIDE = 5
 GRID_WIDTH = GRID_SIDE
 GRID_HEIGHT = GRID_SIDE
@@ -67,19 +72,54 @@ def _box_iou(box1: Box, box2: Box) -> float:
 
 
 def filter_non_common_boxes(boxes: list[Box]) -> list[Box]:
+    log.info(f"Raw box count: {len(boxes)}")
     common_area = _detect_common_box_area(boxes)
     filtered_boxes = [box for box in boxes if _is_common_box(box, common_area)]
+    log.info(f"Filtered box count: {len(filtered_boxes)} (removed {len(boxes) - len(filtered_boxes)})")
     return filtered_boxes
 
 
 def _detect_common_box_area(boxes: list[Box]) -> int:
-    # TODO: This is a naive implementation, need to improve (e.g. use clustering to find common box)
-    areas = [box.area for box in boxes]
-    percentile_50 = np.percentile(areas, q=50)
-    return int(percentile_50)
+    # Extract areas and reshape for clustering
+    areas = np.array([box.area for box in boxes]).reshape(-1, 1)
+
+    # Cluster the areas, assuming 6 clusters
+    kmeans = KMeans(n_clusters=6, random_state=0, n_init="auto")
+    kmeans.fit(areas)
+
+    # Get labels and cluster centers
+    labels = kmeans.labels_
+    cluster_centers = kmeans.cluster_centers_.flatten()
+
+    # Merge close clusters
+    labels_merged = _merge_close_clusters(labels=labels, cluster_centers=cluster_centers)
+
+    # Find the cluster with the maximum number of boxes
+    unique_labels, counts = np.unique(labels_merged, return_counts=True)
+    common_cluster_label = unique_labels[np.argmax(counts)]
+
+    # Compute the mean area of the boxes in the common cluster
+    common_areas = areas[labels_merged == common_cluster_label]
+    common_area = int(np.mean(common_areas))
+    log.info(f"Common area: {common_area}")
+    return common_area
 
 
 def _is_common_box(box: Box, common_area: int, ratio_diff: float = 0.2) -> bool:
     ratio_min, ratio_max = 1 - ratio_diff, 1 + ratio_diff
     ratio = box.area / common_area
     return ratio_min <= ratio <= ratio_max
+
+
+def _merge_close_clusters(labels: np.ndarray, cluster_centers: Iterable[float], threshold: float = 0.07) -> np.ndarray:
+    for label, center in zip(labels, cluster_centers):
+        log.info(f"Cluster {label}: center={center:.2f}")
+    for i, center_i in enumerate(cluster_centers):
+        for j, center_j in enumerate(cluster_centers):
+            if i == j:
+                continue
+            diff = abs(center_i - center_j)
+            if diff < threshold * center_i:
+                log.info(f"Merging clusters {i} and {j} with diff={diff:.3f} (threshold={threshold})")
+                labels[labels == j] = i
+    return labels
