@@ -11,7 +11,7 @@ def entrypoint():
         sys.exit(1)
     image_path = sys.argv[1]
     grid = parse_color_map(image_path)
-    for row in grid:
+    for row in grid.rows:
         for cell in row:
             print(cell.emoji, end=" ")
         print("")

@@ -18,6 +18,30 @@ class Box(NamedTuple):
     h: int
 
     @property
+    def x_min(self) -> int:
+        return self.x
+
+    @property
+    def x_max(self) -> int:
+        return self.x + self.w
+
+    @property
+    def y_min(self) -> int:
+        return self.y
+
+    @property
+    def y_max(self) -> int:
+        return self.y + self.h
+
+    @property
+    def x_center(self) -> int:
+        return self.x + self.w // 2
+
+    @property
+    def y_center(self) -> int:
+        return self.y + self.h // 2
+
+    @property
     def area(self) -> int:
         return self.w * self.h
 
@@ -71,6 +95,14 @@ class Grid(Generic[T]):
         self._rows: list[list[T]] = []
 
     @staticmethod
+    def from_list(row_size: int, items: list[T]) -> "Grid[T]":
+        grid: Grid[T] = Grid(row_size)
+        for i in range(0, len(items), row_size):
+            row = items[i : i + row_size]
+            grid.append(row)
+        return grid
+
+    @staticmethod
     def from_rows(rows: list[list[T]]) -> "Grid[T]":
         if len(rows) == 0:
             raise ValueError("Rows cannot be empty")
@@ -80,19 +112,24 @@ class Grid(Generic[T]):
             grid.append(row)
         return grid
 
+    @property
+    def rows(self) -> list[list[T]]:
+        return self._rows
+
     def append(self, row: list[T]) -> None:
         if len(row) != self.row_size:
             raise ValueError(f"Row size must be {self.row_size}")
         self._rows.append(row)
 
-    def __iter__(self):
-        return iter(self._rows)
+    def __iter__(self) -> Iterator[T]:
+        for row in self._rows:
+            yield from row
 
     def __getitem__(self, index: int) -> list[T]:
         return self._rows[index]
 
     def __len__(self) -> int:
-        return len(self._rows)
+        return len(self._rows) * self.row_size
 
     def __eq__(self, other):
         if not isinstance(other, Grid):

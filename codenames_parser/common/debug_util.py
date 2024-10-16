@@ -74,7 +74,7 @@ def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str) -> np.ndarra
     if len(image.shape) == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     for box in boxes:
-        cv2.rectangle(image, (box.x, box.y), (box.x + box.w, box.y + box.h), (0, 255, 0), 2)
+        cv2.rectangle(image, pt1=(box.x, box.y), pt2=(box.x + box.w, box.y + box.h), color=(0, 255, 0), thickness=2)
     save_debug_image(image, title=title)
     return image
 

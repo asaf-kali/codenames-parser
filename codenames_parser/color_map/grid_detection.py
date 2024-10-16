@@ -6,8 +6,9 @@ from codenames_parser.color_map.consts import CODENAMES_COLORS
 from codenames_parser.color_map.mask import color_distance_mask
 from codenames_parser.common.debug_util import SEPARATOR, draw_boxes
 from codenames_parser.common.grid_detection import (
-    GRID_SIDE,
+    GRID_HEIGHT,
     GRID_SIZE,
+    GRID_WIDTH,
     crop_cells,
     deduplicate_boxes,
     filter_non_common_boxes,
@@ -18,6 +19,7 @@ from codenames_parser.common.models import Box, Grid
 log = logging.getLogger(__name__)
 
 
+# pylint: disable=R0801
 def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
     log.info(SEPARATOR)
     log.info("Extracting color cells...")
@@ -43,11 +45,8 @@ def find_color_boxes(image: np.ndarray) -> list[Box]:
     return color_boxes
 
 
-def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
-    if len(boxes) == GRID_SIZE:
-        return boxes
-
-    num_rows, num_cols = GRID_SIDE, GRID_SIDE
+def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
+    num_rows, num_cols = GRID_HEIGHT, GRID_WIDTH
 
     # Collect x and y centers of existing boxes
     x_centers = [box.x + box.w / 2 for box in boxes]
@@ -66,13 +65,16 @@ def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
     y_step = (max_y_center - min_y_center) / (num_rows - 1)
 
     # Generate the grid of boxes based on min/max centers and step sizes
-    grid_boxes = []
+    boxes_grid: Grid[Box] = Grid(row_size=num_cols)
     for row in range(num_rows):
         y_center = min_y_center + row * y_step
+        box_row: list[Box] = []
         for col in range(num_cols):
             x_center = min_x_center + col * x_step
             x = int(x_center - avg_w / 2)
             y = int(y_center - avg_h / 2)
-            grid_boxes.append(Box(x, y, avg_w, avg_h))
+            box = Box(x, y, avg_w, avg_h)
+            box_row.append(box)
+        boxes_grid.append(box_row)
 
-    return grid_boxes
+    return boxes_grid

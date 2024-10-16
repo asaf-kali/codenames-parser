@@ -20,10 +20,9 @@ def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
 
     # Flatten the grid and compute average colors
     avg_colors = np.empty((0, 3), dtype=np.float64)
-    for cell_row in cells:
-        for cell in cell_row:
-            avg_color = cell.mean(axis=(0, 1))
-            avg_colors = np.vstack([avg_colors, avg_color])
+    for cell in cells:
+        avg_color = cell.mean(axis=(0, 1))
+        avg_colors = np.vstack([avg_colors, avg_color])
 
     # Determine the optimal number of clusters
     optimal_k = 4
@@ -36,18 +35,14 @@ def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
     cluster_to_color = assign_colors_to_clusters(kmeans.cluster_centers_)
 
     # Reshape labels back to grid format
-    card_colors: Grid[CardColor] = Grid(row_size=cells.row_size)
-    idx = 0
-    for cell_row in cells:
-        row_labels = []
-        for _ in cell_row:
-            cluster_label = labels[idx]
-            card_color = cluster_to_color[cluster_label]
-            row_labels.append(card_color)
-            idx += 1
-        card_colors.append(row_labels)
+    card_colors: list[CardColor] = []
+    for i in range(len(cells)):
+        cluster_label = labels[i]
+        card_color = cluster_to_color[cluster_label]
+        card_colors.append(card_color)
 
-    return card_colors
+    grid = Grid.from_list(row_size=cells.row_size, items=card_colors)
+    return grid
 
 
 def assign_colors_to_clusters(cluster_centers: np.ndarray) -> dict:

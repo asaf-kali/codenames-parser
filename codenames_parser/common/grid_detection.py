@@ -5,11 +5,15 @@ from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.models import Box, Grid
 
 GRID_SIDE = 5
-GRID_SIZE = GRID_SIDE * GRID_SIDE
+GRID_WIDTH = GRID_SIDE
+GRID_HEIGHT = GRID_SIDE
+GRID_SIZE = GRID_WIDTH * GRID_HEIGHT
 
 
-def find_boxes(image: np.ndarray, ratio_diff: float = 0.2, min_size: int = 10) -> list[Box]:
-    ratio_min, ratio_max = 1 - ratio_diff, 1 + ratio_diff
+def find_boxes(image: np.ndarray, ratio_max: float = 1.2, min_size: int = 10) -> list[Box]:
+    ratio_min = 1 / ratio_max
+    if ratio_min > ratio_max:
+        ratio_min, ratio_max = ratio_max, ratio_min
     # Convert the mask to grayscale
     if len(image.shape) == 3:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -42,15 +46,9 @@ def deduplicate_boxes(boxes: list[Box]) -> list[Box]:
     return deduplicated_boxes
 
 
-def crop_cells(image: np.ndarray, boxes: list[Box]) -> Grid[np.ndarray]:
-    grid: Grid[np.ndarray] = Grid(row_size=GRID_SIDE)
-    for i in range(GRID_SIDE):
-        row = []
-        for j in range(GRID_SIDE):
-            box = boxes[i * GRID_SIDE + j]
-            cell = crop_by_box(image, box)
-            row.append(cell)
-        grid.append(row)
+def crop_cells(image: np.ndarray, boxes: Grid[Box]) -> Grid[np.ndarray]:
+    cells = [crop_by_box(image, box=box) for box in boxes]
+    grid = Grid.from_list(row_size=GRID_WIDTH, items=cells)
     return grid
 
 
