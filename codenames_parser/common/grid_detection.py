@@ -88,13 +88,14 @@ def _detect_common_box_area(boxes: list[Box]) -> int:
     # Cluster the areas
     kmeans = KMeans(n_clusters=5, random_state=0, n_init="auto")
     kmeans.fit(vectors)
+    _log_kmeans_results(kmeans)
 
     # Get labels and cluster centers
     labels = kmeans.labels_
     area_cluster_centers = kmeans.cluster_centers_[:, 0]
 
     # Merge close clusters
-    labels_merged = _merge_close_clusters(labels=labels, cluster_centers=area_cluster_centers)
+    labels_merged = _merge_close_area_clusters(labels=labels, centers=area_cluster_centers)
 
     # Compute 40th and 60th percentiles of the areas
     percentiles = np.percentile(areas, q=[40, 60])
@@ -107,6 +108,7 @@ def _detect_common_box_area(boxes: list[Box]) -> int:
 
     # Find the cluster with the maximum number of boxes within the filtered range
     unique_labels, counts = np.unique(filtered_labels, return_counts=True)
+    log.info(f"Filtered labels: {unique_labels}")
     common_cluster_label = unique_labels[np.argmax(counts)]
     log.info(f"Common cluster label: {common_cluster_label}")
 
@@ -117,6 +119,14 @@ def _detect_common_box_area(boxes: list[Box]) -> int:
     return common_area
 
 
+def _log_kmeans_results(kmeans: KMeans) -> None:
+    log.info("KMeans results:")
+    for label, center in enumerate(kmeans.cluster_centers_):
+        count = np.sum(kmeans.labels_ == label)
+        area, ratio = center[0], center[1]
+        log.info(f"Cluster {label}: count={count:<3} area={area:<6.0f} ratio={ratio:.3f}")
+
+
 def _is_common_box(box: Box, common_area: int, ratio_max: float = 1.2) -> bool:
     ratio_min = 1 / ratio_max
     if ratio_min > ratio_max:
@@ -125,11 +135,9 @@ def _is_common_box(box: Box, common_area: int, ratio_max: float = 1.2) -> bool:
     return ratio_min <= ratio <= ratio_max
 
 
-def _merge_close_clusters(labels: np.ndarray, cluster_centers: Iterable[float], threshold: float = 0.07) -> np.ndarray:
-    for label, center in enumerate(cluster_centers):
-        log.info(f"Cluster {label}: count={np.sum(labels == label):<5} center={center:.3f}")
-    for i, center_i in enumerate(cluster_centers):
-        for j, center_j in enumerate(cluster_centers):
+def _merge_close_area_clusters(labels: np.ndarray, centers: Iterable[float], threshold: float = 0.07) -> np.ndarray:
+    for i, center_i in enumerate(centers):
+        for j, center_j in enumerate(centers):
             if i == j:
                 continue
             diff = abs(center_i - center_j)

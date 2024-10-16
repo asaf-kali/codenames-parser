@@ -99,9 +99,9 @@ semrel-dev:
 # Lint
 
 format:
-	ruff . --fix
 	black .
 	isort .
+	ruff . --fix
 
 check-ruff:
 	ruff .
