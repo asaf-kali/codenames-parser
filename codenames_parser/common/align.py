@@ -17,7 +17,7 @@ MIN_ROTATION_ANGLE = 0.01
 @dataclass
 class AlignmentResult:
     aligned_image: np.ndarray
-    rotation_degrees: float
+    rotations: list[float]
 
 
 def align_image(image: np.ndarray) -> AlignmentResult:
@@ -25,15 +25,15 @@ def align_image(image: np.ndarray) -> AlignmentResult:
     iter_count = 1
     rho = 1.0
     max_angle = 20.0
+    rotations = []
     log.info(SEPARATOR)
     log.info("Starting image alignment...")
-    rotation_degrees = 0.0
     while True:
         log.info(SEPARATOR)
         log.info(f"Align image iteration {iter_count}")
         result = _align_image_iteration(image, rho=rho, max_angle=max_angle)
         image = result.aligned_image
-        rotation_degrees += result.rotation_degrees
+        rotations.append(result.rotation_degrees)
         if result.line_count < MIN_LINE_COUNT:
             break
         if abs(result.rotation_degrees) < MIN_ROTATION_ANGLE:
@@ -42,7 +42,7 @@ def align_image(image: np.ndarray) -> AlignmentResult:
         max_angle /= 4
         iter_count += 1
     log.info("Image alignment completed")
-    return AlignmentResult(aligned_image=image, rotation_degrees=rotation_degrees)
+    return AlignmentResult(aligned_image=image, rotations=rotations)
 
 
 class AlignmentIterationResult(NamedTuple):
@@ -62,12 +62,18 @@ def _align_image_iteration(image: np.ndarray, rho: float, max_angle: float) -> A
     if abs(angle_degrees) < MIN_ROTATION_ANGLE:
         return AlignmentIterationResult(aligned_image=image, line_count=len(lines), rotation_degrees=0)
     draw_lines(blurred, lines=lines, title="lines before rotate")
-    aligned_image = _rotate_by(image, angle_degrees)
+    aligned_image = apply_rotation(image, angle_degrees)
     save_debug_image(aligned_image, title=f"aligned {angle_degrees:.2f} deg")
     return AlignmentIterationResult(aligned_image=aligned_image, line_count=len(lines), rotation_degrees=angle_degrees)
 
 
-def _rotate_by(image: np.ndarray, angle_degrees: float) -> np.ndarray:
+def apply_rotations(image: np.ndarray, rotations: list[float]) -> np.ndarray:
+    for rotation in rotations:
+        image = apply_rotation(image, rotation)
+    return image
+
+
+def apply_rotation(image: np.ndarray, angle_degrees: float) -> np.ndarray:
     # Get the image center and dimensions
     h, w = image.shape[:2]
     center = (w / 2, h / 2)

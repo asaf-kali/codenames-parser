@@ -11,7 +11,7 @@ def entrypoint():
         print(f"Usage: python {sys.argv[0]} <image_path>")
         sys.exit(1)
     image_path = sys.argv[1]
-    if sys.argv[2]:
+    if len(sys.argv) > 2:
         language = sys.argv[2]
     else:
         language = "hebrew"
