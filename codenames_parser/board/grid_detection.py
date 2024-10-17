@@ -16,7 +16,6 @@ from codenames_parser.common.grid_detection import (
     GRID_HEIGHT,
     GRID_SIZE,
     GRID_WIDTH,
-    crop_cells,
     deduplicate_boxes,
     filter_non_common_boxes,
     find_boxes,
@@ -37,7 +36,7 @@ class RowColIndexes:
     col: list[int]
 
 
-def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
+def extract_boxes(image: np.ndarray) -> Grid[Box]:
     log.info(SEPARATOR)
     log.info("Extracting card cells...")
     for percentile in COLOR_MASK_PERCENTILES:
@@ -51,14 +50,13 @@ def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
     raise GridExtractionFailedError()
 
 
-def _extract_cells_iteration(image: np.ndarray, color_mask_percentile: int) -> Grid[np.ndarray]:
+def _extract_cells_iteration(image: np.ndarray, color_mask_percentile: int) -> Grid[Box]:
     card_boxes = find_card_boxes(image, percentile=color_mask_percentile)
     deduplicated_boxes = deduplicate_boxes(boxes=card_boxes)
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
-    all_card_boxes = _complete_missing_boxes(deduplicated_boxes)
-    draw_boxes(image, boxes=all_card_boxes, title=f"{GRID_SIZE} boxes")
-    grid = crop_cells(image, boxes=all_card_boxes)
-    return grid
+    complete_card_boxes = _complete_missing_boxes(deduplicated_boxes)
+    draw_boxes(image, boxes=complete_card_boxes, title=f"{GRID_SIZE} boxes")
+    return complete_card_boxes
 
 
 def find_card_boxes(image: np.ndarray, percentile: int) -> list[Box]:

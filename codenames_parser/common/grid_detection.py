@@ -130,7 +130,7 @@ def _log_kmeans_results(kmeans: KMeans) -> None:
         log.info(f"Cluster {label}: count={count:<3} area={area:<6.0f} ratio={ratio:.3f}")
 
 
-def _is_common_box(box: Box, common_area: int, ratio_max: float = 1.2) -> bool:
+def _is_common_box(box: Box, common_area: int, ratio_max: float = 1.5) -> bool:
     ratio_min = 1 / ratio_max
     if ratio_min > ratio_max:
         ratio_min, ratio_max = ratio_max, ratio_min

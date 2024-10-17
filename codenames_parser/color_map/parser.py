@@ -11,9 +11,9 @@ from codenames_parser.common.scale import scale_down_image
 
 def parse_color_map(image_path: str) -> Grid[CardColor]:
     image = read_image(image_path)
-    small_image = scale_down_image(image)
-    aligned_image = align_image(small_image)
-    cropped = crop_image(aligned_image)
+    scale_result = scale_down_image(image)
+    alignment_result = align_image(scale_result.image)
+    cropped = crop_image(alignment_result.aligned_image)
     cells = extract_cells(cropped)
     grid_colors = classify_cell_colors(cells)
     return grid_colors

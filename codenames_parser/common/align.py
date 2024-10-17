@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import cv2
@@ -13,17 +14,25 @@ MIN_LINE_COUNT = 10
 MIN_ROTATION_ANGLE = 0.01
 
 
-def align_image(image: np.ndarray) -> np.ndarray:
+@dataclass
+class AlignmentResult:
+    aligned_image: np.ndarray
+    rotation_degrees: float
+
+
+def align_image(image: np.ndarray) -> AlignmentResult:
     # TODO: Handle tilt
     count = 1
     rho = 1.0
     max_angle = 20.0
     log.info(SEPARATOR)
     log.info("Starting image alignment...")
+    rotation_degrees = 0.0
     while True:
         log.info(SEPARATOR)
         log.info(f"Align image iteration {count}")
         result = _align_image_iteration(image, rho=rho, max_angle=max_angle)
+        rotation_degrees += result.rotation_degrees
         if result.line_count < MIN_LINE_COUNT:
             break
         if abs(result.rotation_degrees) < MIN_ROTATION_ANGLE:
@@ -33,7 +42,7 @@ def align_image(image: np.ndarray) -> np.ndarray:
         max_angle /= 4
         count += 1
     log.info("Image alignment completed")
-    return image
+    return AlignmentResult(aligned_image=image, rotation_degrees=rotation_degrees)
 
 
 class AlignmentIterationResult(NamedTuple):
