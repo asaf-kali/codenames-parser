@@ -33,16 +33,20 @@ DEFAULT_RUN_ID = 9999999999 - int(time.time())
 LINE_DRAW_SIZE = 1000
 RUN_COUNT = Counter()
 SEPARATOR = "---------------------------------"
+CONTEXT = ""
 log = logging.getLogger(__name__)
+
+
+def set_debug_context(context: str) -> None:
+    global CONTEXT
+    CONTEXT = context
 
 
 def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
     debug_disabled = os.getenv("DEBUG_DISABLED", "false").lower() in ["true", "1"]
     if debug_disabled:
         return
-    debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
-    run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))
-    run_folder = os.path.join(debug_dir, run_id)
+    run_folder = _get_run_folder()
     os.makedirs(run_folder, exist_ok=True)
     RUN_COUNT.add()
     file_name = f"{RUN_COUNT:03d}: {title}.jpg"
@@ -54,6 +58,15 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
     except Exception as e:
         log.debug(f"Error saving debug image: {e}")
         return
+
+
+def _get_run_folder() -> str:
+    debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
+    run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))
+    run_dir = os.path.join(debug_dir, run_id)
+    if CONTEXT:
+        run_dir = os.path.join(run_dir, CONTEXT)
+    return run_dir
 
 
 def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> np.ndarray:

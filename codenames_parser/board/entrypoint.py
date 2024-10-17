@@ -11,11 +11,9 @@ def entrypoint():
         print(f"Usage: python {sys.argv[0]} <image_path>")
         sys.exit(1)
     image_path = sys.argv[1]
-    grid = parse_board(image_path)
-    for row in grid:
-        for cell in row:
-            print(cell.emoji, end=" ")
-        print("")
+    board = parse_board(image_path)
+    table = board.as_table
+    print(table)
 
 
 if __name__ == "__main__":
