@@ -14,13 +14,13 @@ from codenames_parser.common.grid_detection import (
     filter_non_common_boxes,
     find_boxes,
 )
-from codenames_parser.common.models import Box, Grid
+from codenames_parser.common.models import Box
 
 log = logging.getLogger(__name__)
 
 
 # pylint: disable=R0801
-def extract_cells(image: np.ndarray) -> Grid[np.ndarray]:
+def extract_cells(image: np.ndarray) -> list[np.ndarray]:
     log.info(SEPARATOR)
     log.info("Extracting color cells...")
     card_boxes = find_color_boxes(image)
@@ -45,7 +45,7 @@ def find_color_boxes(image: np.ndarray) -> list[Box]:
     return color_boxes
 
 
-def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
+def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
     num_rows, num_cols = GRID_HEIGHT, GRID_WIDTH
 
     # Collect x and y centers of existing boxes
@@ -65,16 +65,13 @@ def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
     y_step = (max_y_center - min_y_center) / (num_rows - 1)
 
     # Generate the grid of boxes based on min/max centers and step sizes
-    boxes_grid: Grid[Box] = Grid(row_size=num_cols)
+    all_boxes = []
     for row in range(num_rows):
         y_center = min_y_center + row * y_step
-        box_row: list[Box] = []
         for col in range(num_cols):
             x_center = min_x_center + col * x_step
             x = int(x_center - avg_w / 2)
             y = int(y_center - avg_h / 2)
             box = Box(x, y, avg_w, avg_h)
-            box_row.append(box)
-        boxes_grid.append(box_row)
-
-    return boxes_grid
+            all_boxes.append(box)
+    return all_boxes

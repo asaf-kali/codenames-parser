@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 
 from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.errors import NotEnoughBoxesError
-from codenames_parser.common.models import Box, Grid
+from codenames_parser.common.models import Box
 
 log = logging.getLogger(__name__)
 GRID_SIDE = 5
@@ -53,10 +53,8 @@ def deduplicate_boxes(boxes: list[Box]) -> list[Box]:
     return deduplicated_boxes
 
 
-def crop_cells(image: np.ndarray, boxes: Grid[Box]) -> Grid[np.ndarray]:
-    cells = [crop_by_box(image, box=box) for box in boxes]
-    grid = Grid.from_list(row_size=GRID_WIDTH, items=cells)
-    return grid
+def crop_cells(image: np.ndarray, boxes: Iterable[Box]) -> list[np.ndarray]:
+    return [crop_by_box(image, box=box) for box in boxes]
 
 
 def _box_iou(box1: Box, box2: Box) -> float:

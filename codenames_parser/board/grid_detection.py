@@ -20,7 +20,7 @@ from codenames_parser.common.grid_detection import (
     filter_non_common_boxes,
     find_boxes,
 )
-from codenames_parser.common.models import Box, Color, Grid, Point
+from codenames_parser.common.models import Box, Color, Point
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class RowColIndexes:
     col: list[int]
 
 
-def extract_boxes(image: np.ndarray) -> Grid[Box]:
+def extract_boxes(image: np.ndarray) -> list[Box]:
     log.info(SEPARATOR)
     log.info("Extracting card cells...")
     for percentile in COLOR_MASK_PERCENTILES:
@@ -50,7 +50,7 @@ def extract_boxes(image: np.ndarray) -> Grid[Box]:
     raise GridExtractionFailedError()
 
 
-def _extract_cells_iteration(image: np.ndarray, color_mask_percentile: int) -> Grid[Box]:
+def _extract_cells_iteration(image: np.ndarray, color_mask_percentile: int) -> list[Box]:
     card_boxes = find_card_boxes(image, percentile=color_mask_percentile)
     deduplicated_boxes = deduplicate_boxes(boxes=card_boxes)
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
@@ -64,19 +64,14 @@ def find_card_boxes(image: np.ndarray, percentile: int) -> list[Box]:
     equalized = cv2.equalizeHist(blurred)
     save_debug_image(equalized, title="equalized")
     color_distance = color_distance_mask(image, color=WHITE, percentile=percentile)
-    boxes = find_boxes(
-        image=color_distance.filtered_negative,
-        expected_ratio=CARD_RATIO,
-        max_ratio_diff=0.3,
-        min_size=10,
-    )
+    boxes = find_boxes(image=color_distance.filtered_negative, expected_ratio=CARD_RATIO, max_ratio_diff=0.3)
     draw_boxes(image, boxes=boxes, title="boxes raw")
     card_boxes = filter_non_common_boxes(boxes)
     draw_boxes(image, boxes=card_boxes, title="boxes filtered")
     return card_boxes
 
 
-def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
+def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
     """
     Complete missing boxes in the list to reach the expected GRID_SIZE.
     Boxes might not be exactly aligned in a grid, so we can't assume constant row and column sizes.
@@ -141,8 +136,7 @@ def _complete_missing_boxes(boxes: list[Box]) -> Grid[Box]:
             y_min -= height_offset
             box = Box(x=int(x_min), y=int(y_min), w=int(width_uncertain), h=int(height_uncertain))
         all_boxes.append(box)
-    grid = Grid.from_list(row_size=GRID_WIDTH, items=all_boxes)
-    return grid
+    return all_boxes
 
 
 def _predict_missing_boxes_centers(assigned_boxes: dict[int, Box], grid_positions: list[Point]) -> list[Point]:

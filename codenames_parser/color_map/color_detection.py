@@ -6,12 +6,11 @@ from sklearn.cluster import KMeans
 
 from codenames_parser.color_map.consts import CARD_COLOR_TO_COLOR
 from codenames_parser.common.debug_util import SEPARATOR
-from codenames_parser.common.models import Grid
 
 log = logging.getLogger(__name__)
 
 
-def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
+def classify_cell_colors(cells: list[np.ndarray]) -> list[CardColor]:
     """
     Classifies the color of each cell by clustering their average colors.
     """
@@ -40,9 +39,7 @@ def classify_cell_colors(cells: Grid[np.ndarray]) -> Grid[CardColor]:
         cluster_label = labels[i]
         card_color = cluster_to_color[cluster_label]
         card_colors.append(card_color)
-
-    grid = Grid.from_list(row_size=cells.row_size, items=card_colors)
-    return grid
+    return card_colors
 
 
 def assign_colors_to_clusters(cluster_centers: np.ndarray) -> dict:

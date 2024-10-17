@@ -57,11 +57,11 @@ def _align_image_iteration(image: np.ndarray, rho: float, max_angle: float) -> A
     lines = extract_lines(edges, rho=rho)
     if not lines:
         return AlignmentIterationResult(aligned_image=image, line_count=0, rotation_degrees=0)
-    draw_lines(blurred, lines=lines, title="lines_before_rotate")
     angle_degrees = _find_rotation_angle(lines, max_angle=max_angle)
     log.info(f"Rotation angle: {angle_degrees}")
     if abs(angle_degrees) < MIN_ROTATION_ANGLE:
         return AlignmentIterationResult(aligned_image=image, line_count=len(lines), rotation_degrees=0)
+    draw_lines(blurred, lines=lines, title="lines before rotate")
     aligned_image = _rotate_by(image, angle_degrees)
     save_debug_image(aligned_image, title=f"aligned {angle_degrees:.2f} deg")
     return AlignmentIterationResult(aligned_image=aligned_image, line_count=len(lines), rotation_degrees=angle_degrees)
@@ -161,9 +161,9 @@ def blur_image(image: np.ndarray, k_size: int = 5) -> np.ndarray:
     return blurred
 
 
-def detect_edges(image: np.ndarray) -> np.ndarray:
+def detect_edges(image: np.ndarray, threshold1: int = 50, threshold2: int = 150) -> np.ndarray:
     # Edge detection
-    edges = cv2.Canny(image, 50, 150)
+    edges = cv2.Canny(image, threshold1, threshold2)
     save_debug_image(edges, title="edges")
     return edges
 

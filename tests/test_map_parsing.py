@@ -5,6 +5,7 @@ import pytest
 from codenames.game.color import CardColor
 
 from codenames_parser.color_map.parser import parse_color_map
+from codenames_parser.common.grid_detection import GRID_WIDTH
 from codenames_parser.common.models import CellDiff, Grid
 from tests.cases import MAP_CASES
 from tests.fixtures import get_fixture_path
@@ -20,8 +21,9 @@ def set_env_vars():
 @pytest.mark.parametrize("fixture_file,expected_grid", MAP_CASES)
 def test_map_parsing(fixture_file: str, expected_grid: Grid[CardColor]):
     image_path = get_fixture_path(fixture_file)
-    result = parse_color_map(image_path=image_path)
-    diff = expected_grid.diff(other=result)
+    colors = parse_color_map(image_path=image_path)
+    grid = Grid.from_list(row_size=GRID_WIDTH, items=colors)
+    diff = expected_grid.diff(other=grid)
     _print_diff(diff)
     assert not diff
 
