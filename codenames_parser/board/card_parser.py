@@ -1,12 +1,15 @@
-import numpy as np
-from codenames.game.card import Card
-from codenames.game.color import CardColor
+import logging
 
-from codenames_parser.board.grid_detection import CARD_RATIO
-from codenames_parser.common.align import align_image, detect_edges
-from codenames_parser.common.debug_util import draw_boxes, set_debug_context
-from codenames_parser.common.grid_detection import find_boxes
+import numpy as np
+import pytesseract
+from codenames.game.card import Card
+
+from codenames_parser.board.ocr import fetch_tesseract_language
+from codenames_parser.common.align import align_image
+from codenames_parser.common.debug_util import set_debug_context
 from codenames_parser.common.scale import scale_down_image
+
+log = logging.getLogger(__name__)
 
 
 def parse_cards(cells: list[np.ndarray], language: str) -> list[Card]:
@@ -19,10 +22,9 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[Card]:
 
 
 def _parse_card(image: np.ndarray, language: str) -> Card:
-    scale_result = scale_down_image(image, max_dimension=100)
+    scale_result = scale_down_image(image, max_dimension=250)
     alignment_result = align_image(scale_result.image)
-    edges = detect_edges(alignment_result.aligned_image, threshold1=50, threshold2=150)
-    # cropped = crop_image(alignment_result.aligned_image)
-    boxes = find_boxes(edges, expected_ratio=CARD_RATIO, max_ratio_diff=0.2)
-    draw_boxes(edges, boxes=boxes, title="boxes")
-    return Card(word=language, color=CardColor.BLACK)
+    fetch_tesseract_language(language)
+    text = pytesseract.image_to_string(alignment_result.aligned_image, lang=language, config="--psm 6")
+    log.info(f"Extracted text: '{text}'")
+    return Card(word=text.strip())

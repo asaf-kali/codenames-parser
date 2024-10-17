@@ -23,6 +23,11 @@ numpy = "^2.1"
 opencv-python = "^4.10"
 # Leaning
 scikit-learn = "^1.5.2"
+# OCR
+pytesseract = "^0.3.13"
+# Util
+requests = "^2.32.3"
+platformdirs = "^4.3.6"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
@@ -34,6 +39,7 @@ black = "^23.3"
 isort = "^5.12"
 mypy = "^1.2"
 pylint = "^3.0"
+types-requests = "^2.32.0.20241016"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.2.2"

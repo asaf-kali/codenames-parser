@@ -23,6 +23,11 @@ class AxisBounds(NamedTuple):
 def crop_image(image: np.ndarray, min_crop_ratio: float = 0.4) -> np.ndarray:
     """
     Crop the input image according to the main Hough lines.
+
+    Args:
+        image: The input image.
+        min_crop_ratio: The minimum ratio of the cropped image to the original image.
+        Meaning, if the cropped image is smaller than the original image by this ratio, the cropping is skipped.
     """
     log.info(SEPARATOR)
     log.info("Starting image cropping...")

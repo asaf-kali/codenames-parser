@@ -14,7 +14,7 @@ def entrypoint():
     if len(sys.argv) > 2:
         language = sys.argv[2]
     else:
-        language = "hebrew"
+        language = "heb"
     board = parse_board(image_path, language=language)
     table = board.as_table
     print(table)
