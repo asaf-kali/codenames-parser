@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 
 
 def set_debug_context(context: str) -> None:
-    global CONTEXT
+    global CONTEXT  # pylint: disable=global-statement
     CONTEXT = context
 
 

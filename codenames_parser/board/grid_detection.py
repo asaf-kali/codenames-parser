@@ -25,7 +25,7 @@ from codenames_parser.common.models import Box, Color, Grid, Point
 log = logging.getLogger(__name__)
 
 WHITE = Color(255, 255, 255)
-CARD_RATIO_MAX = 1.8
+CARD_RATIO = 1.55
 UNCERTAIN_BOX_FACTOR = 1.2
 COLOR_MASK_PERCENTILES = [80, 75, 70, 65, 60, 50]
 
@@ -64,7 +64,12 @@ def find_card_boxes(image: np.ndarray, percentile: int) -> list[Box]:
     equalized = cv2.equalizeHist(blurred)
     save_debug_image(equalized, title="equalized")
     color_distance = color_distance_mask(image, color=WHITE, percentile=percentile)
-    boxes = find_boxes(image=color_distance.filtered_negative, ratio_max=CARD_RATIO_MAX, min_size=10)
+    boxes = find_boxes(
+        image=color_distance.filtered_negative,
+        expected_ratio=CARD_RATIO,
+        max_ratio_diff=0.3,
+        min_size=10,
+    )
     draw_boxes(image, boxes=boxes, title="boxes raw")
     card_boxes = filter_non_common_boxes(boxes)
     draw_boxes(image, boxes=card_boxes, title="boxes filtered")
