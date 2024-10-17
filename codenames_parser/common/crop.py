@@ -20,7 +20,7 @@ class AxisBounds(NamedTuple):
     end: Line
 
 
-def crop_image(image: np.ndarray) -> np.ndarray:
+def crop_image(image: np.ndarray, min_crop_ratio: float = 0.4) -> np.ndarray:
     """
     Crop the input image according to the main Hough lines.
     """
@@ -39,11 +39,15 @@ def crop_image(image: np.ndarray) -> np.ndarray:
         return image
     x = [*horizontal_bounds, *vertical_bounds]
     draw_lines(image, lines=x, title="crop bounds")
-    cropped = crop_by_bounds(image, horizontal_bounds=horizontal_bounds, vertical_bounds=vertical_bounds)
+    cropped = crop_by_bounds(
+        image, horizontal_bounds=horizontal_bounds, vertical_bounds=vertical_bounds, min_crop_ratio=min_crop_ratio
+    )
     return cropped
 
 
-def crop_by_bounds(image: np.ndarray, horizontal_bounds: AxisBounds, vertical_bounds: AxisBounds) -> np.ndarray:
+def crop_by_bounds(
+    image: np.ndarray, horizontal_bounds: AxisBounds, vertical_bounds: AxisBounds, min_crop_ratio: float
+) -> np.ndarray:
     """
     Crop the input image according to the given bounds.
     """
@@ -51,6 +55,16 @@ def crop_by_bounds(image: np.ndarray, horizontal_bounds: AxisBounds, vertical_bo
     end_x = _valid_rho(vertical_bounds.end.rho)
     start_y = _valid_rho(horizontal_bounds.start.rho)
     end_y = _valid_rho(horizontal_bounds.end.rho)
+    width_cropped, height_cropped = end_x - start_x, end_y - start_y
+    width_original, height_original = image.shape[1], image.shape[0]
+    width_ratio = width_cropped / width_original
+    height_ratio = height_cropped / height_original
+    log.info(f"Original image size: {width_original}x{height_original}")
+    log.info(f"Cropped image size: {width_cropped}x{height_cropped}")
+    log.info(f"Cropping ratio: {width_ratio:.2f}x{height_ratio:.2f}")
+    if width_ratio < min_crop_ratio or height_ratio < min_crop_ratio:
+        log.info("Cropping ratio is too low, skipping cropping")
+        return image
     cropped = image[start_y:end_y, start_x:end_x]
     save_debug_image(cropped, title="cropped")
     return cropped
