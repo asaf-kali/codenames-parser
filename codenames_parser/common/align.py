@@ -22,7 +22,7 @@ class AlignmentResult:
 
 def align_image(image: np.ndarray) -> AlignmentResult:
     # TODO: Handle tilt
-    count = 1
+    iter_count = 1
     rho = 1.0
     max_angle = 20.0
     log.info(SEPARATOR)
@@ -30,17 +30,17 @@ def align_image(image: np.ndarray) -> AlignmentResult:
     rotation_degrees = 0.0
     while True:
         log.info(SEPARATOR)
-        log.info(f"Align image iteration {count}")
+        log.info(f"Align image iteration {iter_count}")
         result = _align_image_iteration(image, rho=rho, max_angle=max_angle)
+        image = result.aligned_image
         rotation_degrees += result.rotation_degrees
         if result.line_count < MIN_LINE_COUNT:
             break
         if abs(result.rotation_degrees) < MIN_ROTATION_ANGLE:
             break
-        image = result.aligned_image
         rho /= 1.2
         max_angle /= 4
-        count += 1
+        iter_count += 1
     log.info("Image alignment completed")
     return AlignmentResult(aligned_image=image, rotation_degrees=rotation_degrees)
 
