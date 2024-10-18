@@ -2,9 +2,9 @@ import logging
 
 import numpy as np
 import pytesseract
-from codenames.game.card import Card
 
 from codenames_parser.board.ocr import fetch_tesseract_language
+from codenames_parser.board.template_search import pyramid_image_search
 from codenames_parser.common.align import align_image, apply_rotations
 from codenames_parser.common.debug_util import (
     SEPARATOR,
@@ -13,8 +13,10 @@ from codenames_parser.common.debug_util import (
     set_debug_context,
 )
 from codenames_parser.common.grid_detection import crop_cells, deduplicate_boxes
+from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box, LetterBox
 from codenames_parser.common.scale import scale_down_image
+from codenames_parser.resources.resource_manager import get_card_template_path
 
 log = logging.getLogger(__name__)
 
@@ -25,25 +27,28 @@ log = logging.getLogger(__name__)
 # }
 
 
-def parse_cards(cells: list[np.ndarray], language: str) -> list[Card]:
+def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
     cards = []
+    card_template = read_image(get_card_template_path())
     for i, cell in enumerate(cells):
         set_debug_context(f"card {i}")
         log.info(SEPARATOR)
         log.info(f"Processing card {i}")
-        card = _parse_card(cell, language=language)
+        card = _parse_card(cell, language=language, card_template=card_template)
         cards.append(card)
     return cards
 
 
-def _parse_card(image: np.ndarray, language: str) -> Card:
+def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
+    actual_card = pyramid_image_search(source_image=image, template_image=card_template)
+    save_debug_image(actual_card, title="actual card")
     scale_result = scale_down_image(image, max_dimension=250)
     alignment_result = align_image(scale_result.image)
     image_aligned = apply_rotations(image=image, rotations=alignment_result.rotations)
     # boxes = pytesseract.image_to_boxes(image_aligned, lang=language)
     # color_distance = color_distance_mask(alignment_result.aligned_image, color=WHITE, percentile=80)
     text = _extract_text(image_aligned, language=language)
-    return Card(word=text.strip())
+    return text
 
 
 def _extract_text(card: np.ndarray, language: str) -> str:
@@ -52,7 +57,7 @@ def _extract_text(card: np.ndarray, language: str) -> str:
     result = pytesseract.image_to_string(card, lang=language, config=config)
     word = _pick_word_from_raw_text(result)
     log.info(f"Extracted word: [{word}]")
-    return word
+    return word.strip()
 
 
 def _extract_text_boxes_strategy(card: np.ndarray, language: str) -> str:

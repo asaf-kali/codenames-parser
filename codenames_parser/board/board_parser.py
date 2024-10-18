@@ -1,7 +1,6 @@
 # pylint: disable=R0801
 
 import numpy as np
-from codenames.game.board import Board
 
 from codenames_parser.board.card_parser import parse_cards
 from codenames_parser.board.grid_detection import extract_boxes
@@ -13,7 +12,7 @@ from codenames_parser.common.models import Box
 from codenames_parser.common.scale import scale_down_image
 
 
-def parse_board(image_path: str, language: str) -> Board:
+def parse_board(image_path: str, language: str) -> list[str]:
     image = read_image(image_path)
     scale_result = scale_down_image(image)
     alignment_result = align_image(scale_result.image)
@@ -26,7 +25,7 @@ def parse_board(image_path: str, language: str) -> Board:
         enlarge_factor=0.20,
     )
     cards = parse_cards(cells, language=language)
-    return Board(cards=cards, language=language)
+    return cards
 
 
 def _crop_cells(
