@@ -31,7 +31,7 @@ COLOR_MASK_PERCENTILES = [80, 75, 70, 65, 60, 50]
 
 
 @dataclass
-class RowColIndexes:
+class RowColIndices:
     row: list[int]
     col: list[int]
 
@@ -143,12 +143,12 @@ def _predict_missing_boxes_centers(assigned_boxes: dict[int, Box], grid_position
     """
     Predict the centers of missing boxes by looking at the average centers of its row and column.
     """
-    missing_indexes = set(range(GRID_SIZE)) - set(assigned_boxes.keys())
-    log.info(f"Missing box indexes: {missing_indexes}")
-    for i in missing_indexes:
-        row_col_indexes = _get_row_col_indexes(i)
-        x_positions = [assigned_boxes[j].x_center for j in row_col_indexes.col if j not in missing_indexes]
-        y_positions = [assigned_boxes[j].y_center for j in row_col_indexes.row if j not in missing_indexes]
+    missing_indices = set(range(GRID_SIZE)) - set(assigned_boxes.keys())
+    log.info(f"Missing box indices: {missing_indices}")
+    for i in missing_indices:
+        row_col_indices = _get_row_col_indices(i)
+        x_positions = [assigned_boxes[j].x_center for j in row_col_indices.col if j not in missing_indices]
+        y_positions = [assigned_boxes[j].y_center for j in row_col_indices.row if j not in missing_indices]
         if not x_positions or not y_positions:
             log.info(f"Missing box {i} does not have enough neighbors")
             continue
@@ -161,15 +161,15 @@ def _predict_missing_boxes_centers(assigned_boxes: dict[int, Box], grid_position
     return grid_positions
 
 
-def _get_row_col_indexes(box_index: int) -> RowColIndexes:
+def _get_row_col_indices(box_index: int) -> RowColIndices:
     """
-    Get the indexes of all boxes in the same row and column as the given box index.
+    Get the indices of all boxes in the same row and column as the given box index.
     """
     row = box_index // GRID_WIDTH
     col = box_index % GRID_WIDTH
-    row_indexes, col_indexes = [], []
+    row_indices, col_indices = [], []
     for i in range(GRID_HEIGHT):
-        col_indexes.append(col + i * GRID_WIDTH)
+        col_indices.append(col + i * GRID_WIDTH)
     for i in range(GRID_WIDTH):
-        row_indexes.append(row * GRID_WIDTH + i)
-    return RowColIndexes(row=row_indexes, col=col_indexes)
+        row_indices.append(row * GRID_WIDTH + i)
+    return RowColIndices(row=row_indices, col=col_indices)
