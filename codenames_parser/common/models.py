@@ -23,7 +23,8 @@ class Point(NamedTuple):
         return f"({self.x:.0f}, {self.y:.0f})"
 
 
-class Box(NamedTuple):
+@dataclass
+class Box:
     x: int
     y: int
     w: int
@@ -60,6 +61,11 @@ class Box(NamedTuple):
     @property
     def area(self) -> int:
         return self.w * self.h
+
+
+@dataclass
+class LetterBox(Box):
+    letter: str
 
 
 class P1P2(NamedTuple):
