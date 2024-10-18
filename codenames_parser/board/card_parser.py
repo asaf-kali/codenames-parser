@@ -49,6 +49,15 @@ def _parse_card(image: np.ndarray, language: str) -> Card:
 def _extract_text(card: np.ndarray, language: str) -> str:
     fetch_tesseract_language(language)
     config = "--psm 11"
+    result = pytesseract.image_to_string(card, lang=language, config=config)
+    word = _pick_word_from_raw_text(result)
+    log.info(f"Extracted word: [{word}]")
+    return word
+
+
+def _extract_text_boxes_strategy(card: np.ndarray, language: str) -> str:
+    fetch_tesseract_language(language)
+    config = "--psm 11"
     result = pytesseract.image_to_boxes(card, lang=language, config=config)
     letter_boxes_raw = _parse_letter_boxes(result)
     letter_boxes = _mirror_around_horizontal_center(card, letter_boxes_raw)
@@ -58,7 +67,8 @@ def _extract_text(card: np.ndarray, language: str) -> str:
     # _log_letter_boxes(card=card, letter_boxes=letter_boxes_deduplicated)
     max_letter_distance = _get_max_letter_distance(card.shape)
     word_boxes = _merge_letter_boxes(
-        letter_boxes=letter_boxes_deduplicated, max_center_distance=max_letter_distance
+        letter_boxes=letter_boxes_deduplicated,
+        max_center_distance=max_letter_distance,
     )  # type: ignore[arg-type]
     draw_boxes(image=card, boxes=word_boxes, title="word boxes")
     word_cells = crop_cells(card, boxes=word_boxes)

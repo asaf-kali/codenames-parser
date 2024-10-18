@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 WHITE = Color(255, 255, 255)
 CARD_RATIO = 1.55
-UNCERTAIN_BOX_FACTOR = 1.2
+UNCERTAIN_BOX_FACTOR = 1.1
 COLOR_MASK_PERCENTILES = [80, 75, 70, 65, 60, 50]
 
 

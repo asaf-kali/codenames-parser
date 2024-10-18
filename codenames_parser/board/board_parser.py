@@ -23,16 +23,21 @@ def parse_board(image_path: str, language: str) -> Board:
         boxes=boxes,
         scale_factor=1 / scale_result.scale_factor,
         rotations=alignment_result.rotations,
+        enlarge_factor=0.20,
     )
     cards = parse_cards(cells, language=language)
     return Board(cards=cards, language=language)
 
 
-def _crop_cells(image: np.ndarray, boxes: list[Box], scale_factor: float, rotations: list[float]) -> list[np.ndarray]:
+def _crop_cells(
+    image: np.ndarray, boxes: list[Box], scale_factor: float, rotations: list[float], enlarge_factor: float
+) -> list[np.ndarray]:
     image_rotated = apply_rotations(image, rotations=rotations)
     boxes_scaled = [_scale_box(box, scale_factor) for box in boxes]
     draw_boxes(image_rotated, boxes=boxes_scaled, title="boxes scaled")
-    cells = [crop_by_box(image_rotated, box=box) for box in boxes_scaled]
+    boxes_enlarged = [_box_enlarged(box, factor=enlarge_factor) for box in boxes_scaled]
+    draw_boxes(image_rotated, boxes=boxes_enlarged, title="boxes enlarged")
+    cells = [crop_by_box(image_rotated, box=box) for box in boxes_enlarged]
     return cells
 
 
@@ -42,6 +47,17 @@ def _scale_box(box: Box, scale_factor: float) -> Box:
         y=int(box.y * scale_factor),
         w=int(box.w * scale_factor),
         h=int(box.h * scale_factor),
+    )
+
+
+def _box_enlarged(box: Box, factor: float) -> Box:
+    x_diff = box.w * factor
+    y_diff = box.h * factor
+    return Box(
+        x=int(box.x - x_diff / 2),
+        y=int(box.y - x_diff / 2),
+        w=int(box.w + x_diff),
+        h=int(box.h + y_diff),
     )
 
 
