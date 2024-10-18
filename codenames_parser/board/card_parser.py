@@ -6,8 +6,13 @@ from codenames.game.card import Card
 
 from codenames_parser.board.ocr import fetch_tesseract_language
 from codenames_parser.common.align import align_image, apply_rotations
-from codenames_parser.common.debug_util import SEPARATOR, draw_boxes, set_debug_context
-from codenames_parser.common.grid_detection import crop_cells
+from codenames_parser.common.debug_util import (
+    SEPARATOR,
+    draw_boxes,
+    save_debug_image,
+    set_debug_context,
+)
+from codenames_parser.common.grid_detection import crop_cells, deduplicate_boxes
 from codenames_parser.common.models import Box, LetterBox
 from codenames_parser.common.scale import scale_down_image
 
@@ -48,8 +53,13 @@ def _extract_text(card: np.ndarray, language: str) -> str:
     letter_boxes_raw = _parse_letter_boxes(result)
     letter_boxes = _mirror_around_horizontal_center(card, letter_boxes_raw)
     draw_boxes(image=card, boxes=letter_boxes, title="letter boxes")
+    letter_boxes_deduplicated = deduplicate_boxes(boxes=letter_boxes, max_iou=0.1)  # type: ignore[arg-type]
+    draw_boxes(image=card, boxes=letter_boxes_deduplicated, title="letter boxes deduplicated")
+    # _log_letter_boxes(card=card, letter_boxes=letter_boxes_deduplicated)
     max_letter_distance = _get_max_letter_distance(card.shape)
-    word_boxes = _merge_letter_boxes(letter_boxes, max_center_distance=max_letter_distance)  # type: ignore[arg-type]
+    word_boxes = _merge_letter_boxes(
+        letter_boxes=letter_boxes_deduplicated, max_center_distance=max_letter_distance
+    )  # type: ignore[arg-type]
     draw_boxes(image=card, boxes=word_boxes, title="word boxes")
     word_cells = crop_cells(card, boxes=word_boxes)
     word = _find_word(word_cells, language=language)
@@ -57,9 +67,15 @@ def _extract_text(card: np.ndarray, language: str) -> str:
     return word
 
 
+def _log_letter_boxes(card: np.ndarray, letter_boxes: list[Box]) -> None:
+    letters = crop_cells(card, boxes=letter_boxes)
+    for i, letter in enumerate(letters):
+        save_debug_image(letter, title=f"letter {i}")
+
+
 def _get_max_letter_distance(image_shape: tuple[int, int]) -> float:
     image_width = image_shape[1]
-    return image_width / 15
+    return image_width / 10
 
 
 def _merge_letter_boxes(letter_boxes: list[Box], max_center_distance: float) -> list[Box]:
@@ -72,19 +88,16 @@ def _merge_letter_boxes(letter_boxes: list[Box], max_center_distance: float) -> 
         return []
     max_side_distance = max_center_distance / 2
     # Distance matrix
-    distances = np.zeros((len(letter_boxes), len(letter_boxes)))
+    num_boxes = len(letter_boxes)
+    distances = np.full((num_boxes, num_boxes), np.inf)
     for i, box1 in enumerate(letter_boxes):
         for j, box2 in enumerate(letter_boxes):
-            if i == j:
-                distance = np.inf
-            else:
-                distance = box1.center_distance(box2)
-            distances[i, j] = distance
+            if i <= j:
+                continue
+            distances[i, j] = box1.center_distance(box2)
     # Merge boxes
-    merge_candidates_indices = np.argwhere(distances < max_side_distance)
+    merge_candidates_indices = np.argwhere(distances < max_center_distance)
     for i, j in merge_candidates_indices:
-        if i == j:
-            continue
         box1, box2 = letter_boxes[i], letter_boxes[j]
         if id(box1) == id(box2):
             continue

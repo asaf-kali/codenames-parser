@@ -38,14 +38,14 @@ def find_boxes(
     return bounding_boxes
 
 
-def deduplicate_boxes(boxes: list[Box]) -> list[Box]:
+def deduplicate_boxes(boxes: list[Box], max_iou: float = 0.5) -> list[Box]:
     # Deduplicate boxes based on Intersection over Union (IoU)
     deduplicated_boxes: list[Box] = []
     for box in boxes:
         is_duplicate = False
         for existing_box in deduplicated_boxes:
             iou = _box_iou(box, existing_box)
-            if iou > 0.5:
+            if iou > max_iou:
                 is_duplicate = True
                 break
         if not is_duplicate:
