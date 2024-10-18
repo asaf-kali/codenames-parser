@@ -1,14 +1,28 @@
 from dataclasses import dataclass
-from typing import Generic, Iterable, Iterator, NamedTuple, TypeVar
+from typing import Generic, Iterable, Iterator, NamedTuple, Sequence, TypeVar
 
 import numpy as np
 
 T = TypeVar("T")
 
 
-class Point(NamedTuple):
+@dataclass
+class Point(Sequence[int]):
     x: int
     y: int
+
+    @property
+    def tuple(self):
+        return self.x, self.y
+
+    def __getitem__(self, index):
+        return self.tuple[index]
+
+    def __iter__(self):
+        return iter(self.tuple)
+
+    def __len__(self):
+        return len(self.tuple)
 
     def __add__(self, other):
         return Point(self.x + other.x, self.y + other.y)
@@ -61,6 +75,9 @@ class Box:
     @property
     def area(self) -> int:
         return self.w * self.h
+
+    def center_distance(self, other: "Box") -> float:
+        return float(np.linalg.norm(self.center - other.center))
 
 
 @dataclass

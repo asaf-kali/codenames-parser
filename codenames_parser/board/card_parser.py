@@ -7,15 +7,17 @@ from codenames.game.card import Card
 from codenames_parser.board.ocr import fetch_tesseract_language
 from codenames_parser.common.align import align_image, apply_rotations
 from codenames_parser.common.debug_util import SEPARATOR, draw_boxes, set_debug_context
-from codenames_parser.common.models import LetterBox
+from codenames_parser.common.grid_detection import crop_cells
+from codenames_parser.common.models import Box, LetterBox
 from codenames_parser.common.scale import scale_down_image
 
 log = logging.getLogger(__name__)
 
-COMMON_ALPHABET = "-"
-LANGUAGE_DEFAULT_ALPHABET = {
-    "heb": "אבגדהוזחטיכלמנסעפצקרשתךםןףץ",
-}
+
+# COMMON_ALPHABET = "-"
+# LANGUAGE_DEFAULT_ALPHABET = {
+#     "heb": "אבגדהוזחטיכלמנסעפצקרשתךםןףץ",
+# }
 
 
 def parse_cards(cells: list[np.ndarray], language: str) -> list[Card]:
@@ -43,14 +45,101 @@ def _extract_text(card: np.ndarray, language: str) -> str:
     fetch_tesseract_language(language)
     config = "--psm 11"
     result = pytesseract.image_to_boxes(card, lang=language, config=config)
-    letter_boxes = _parse_image_to_boxes(result)
-    letter_boxes_mirrored = _mirror_around_horizontal_center(card, letter_boxes)
-    draw_boxes(image=card, boxes=letter_boxes_mirrored, title="letter boxes")
-    word = _find_word(letter_boxes)
+    letter_boxes_raw = _parse_letter_boxes(result)
+    letter_boxes = _mirror_around_horizontal_center(card, letter_boxes_raw)
+    draw_boxes(image=card, boxes=letter_boxes, title="letter boxes")
+    max_letter_distance = _get_max_letter_distance(card.shape)
+    word_boxes = _merge_letter_boxes(letter_boxes, max_center_distance=max_letter_distance)  # type: ignore[arg-type]
+    draw_boxes(image=card, boxes=word_boxes, title="word boxes")
+    word_cells = crop_cells(card, boxes=word_boxes)
+    word = _find_word(word_cells, language=language)
+    log.info(f"Extracted word: [{word}]")
     return word
 
 
+def _get_max_letter_distance(image_shape: tuple[int, int]) -> float:
+    image_width = image_shape[1]
+    return image_width / 15
+
+
+def _merge_letter_boxes(letter_boxes: list[Box], max_center_distance: float) -> list[Box]:
+    """
+    Merge letter boxes that are close to each other.
+    Take min x, min y, max x, max y.
+    The threshold determines how far apart letters can be to still be merged into a word box.
+    """
+    if not letter_boxes:
+        return []
+    max_side_distance = max_center_distance / 2
+    # Distance matrix
+    distances = np.zeros((len(letter_boxes), len(letter_boxes)))
+    for i, box1 in enumerate(letter_boxes):
+        for j, box2 in enumerate(letter_boxes):
+            if i == j:
+                distance = np.inf
+            else:
+                distance = box1.center_distance(box2)
+            distances[i, j] = distance
+    # Merge boxes
+    merge_candidates_indices = np.argwhere(distances < max_side_distance)
+    for i, j in merge_candidates_indices:
+        if i == j:
+            continue
+        box1, box2 = letter_boxes[i], letter_boxes[j]
+        if id(box1) == id(box2):
+            continue
+        side_distance = _box_side_distance(box1, box2)
+        if side_distance > max_side_distance:
+            continue
+        merged_x = min(box1.x, box2.x)
+        merged_y = min(box1.y, box2.y)
+        merged_w = max(box1.x + box1.w, box2.x + box2.w) - merged_x
+        merged_h = max(box1.y + box1.h, box2.y + box2.h) - merged_y
+        merged_box = Box(x=merged_x, y=merged_y, w=merged_w, h=merged_h)
+        letter_boxes[i] = merged_box
+        letter_boxes[j] = merged_box
+    return letter_boxes
+
+
+def _box_side_distance(box1: Box, box2: Box) -> float:
+    """
+    Calculate the distance between the closest two sides of two boxes.
+    If the boxes overlap or touch, the distance is 0.
+    """
+    x1, y1, x2, y2 = box1.x, box1.y, box1.x + box1.w, box1.y + box1.h
+    x3, y3, x4, y4 = box2.x, box2.y, box2.x + box2.w, box2.y + box2.h
+
+    # Calculate horizontal and vertical distances
+    horizontal_dist = 0.0
+    vertical_dist = 0.0
+
+    # If box1 is completely to the left of box2
+    if x2 < x3:
+        horizontal_dist = x3 - x2
+    # If box1 is completely to the right of box2
+    elif x4 < x1:
+        horizontal_dist = x1 - x4
+
+    # If box1 is completely above box2
+    if y2 < y3:
+        vertical_dist = y3 - y2
+    # If box1 is completely below box2
+    elif y4 < y1:
+        vertical_dist = y1 - y4
+
+    # If the boxes overlap or touch in both horizontal and vertical directions
+    if horizontal_dist == 0 and vertical_dist == 0:
+        return 0.0
+
+    # Return the largest of the two distances in diagonal cases
+    return max(horizontal_dist, vertical_dist)
+
+
 def _mirror_around_horizontal_center(image: np.ndarray, boxes: list[LetterBox]) -> list[LetterBox]:
+    """
+    For some reason, the OCR flips the text boxes upside down.
+    Mirror the boxes around the horizontal center of the image.
+    """
     image_height = image.shape[0]
     center_y = image_height // 2
     mirrored_boxes = []
@@ -72,12 +161,22 @@ def _pick_word_from_raw_text(raw_text: str) -> str:
     return longest_word
 
 
-def _find_word(boxes: list[LetterBox]) -> str:
-    text = "".join(box.letter for box in boxes)
-    return text
+def _find_word(word_cells: list[np.ndarray], language: str) -> str:
+    words = [_parse_word_cell(cell, language=language) for cell in word_cells]
+    log.info(f"Found words: {words}")
+    if not words:
+        return ""
+    return max(words, key=len)  # type: ignore
 
 
-def _parse_image_to_boxes(result: str) -> list[LetterBox]:
+def _parse_word_cell(cell: np.ndarray, language: str) -> str | None:
+    config = "--psm 11"
+    result = pytesseract.image_to_string(cell, lang=language, config=config)
+    # TODO: Improve
+    return result.strip()
+
+
+def _parse_letter_boxes(result: str) -> list[LetterBox]:
     boxes_raw = result.split("\n")
     if not boxes_raw:
         return []
