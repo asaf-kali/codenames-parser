@@ -1,7 +1,7 @@
 # pylint: disable=R0801
 import sys
 
-from codenames_parser.board.parser import parse_board
+from codenames_parser.board.board_parser import parse_board
 from codenames_parser.common.logging import configure_logging
 
 

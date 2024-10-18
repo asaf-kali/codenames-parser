@@ -4,7 +4,7 @@ import os
 import pytest
 from codenames.game.color import CardColor
 
-from codenames_parser.color_map.parser import parse_color_map
+from codenames_parser.color_map.color_map_parser import parse_color_map
 from codenames_parser.common.grid_detection import GRID_WIDTH
 from codenames_parser.common.models import CellDiff, Grid
 from tests.cases import MAP_CASES

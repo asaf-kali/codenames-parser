@@ -1,6 +1,6 @@
 import sys
 
-from codenames_parser.color_map.parser import parse_color_map
+from codenames_parser.color_map.color_map_parser import parse_color_map
 from codenames_parser.common.logging import configure_logging
 
 
