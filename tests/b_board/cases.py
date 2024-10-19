@@ -39,4 +39,36 @@ BOARD1_TOP_CASE = ParseBoardTestCase(
     ],
 )
 
-BOARD_CASES = [BOARD1_TOP_CASE]
+BOARD3_TOP_CASE = ParseBoardTestCase(
+    fixture_file="board3_top.jpg",
+    language="heb",
+    expected_words=[
+        "ציבור",
+        "אוטובוס",
+        "ישראל",
+        "מתח",
+        "גס",
+        "ברית",
+        "גוש",
+        "איום",
+        "מורח",
+        "קנה",
+        "לידה",
+        "מבחן",
+        "אודם",
+        "שוקו",
+        "חטיף",
+        "חוק",
+        "רץ",
+        "חצות",
+        "רדיו",
+        "כתם",
+        "גרם",
+        "כהן",
+        "רושם",
+        "אלמוג",
+        "אופק",
+    ],
+)
+
+BOARD_CASES = [BOARD1_TOP_CASE, BOARD3_TOP_CASE]
