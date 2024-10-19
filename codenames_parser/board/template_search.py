@@ -41,7 +41,7 @@ class SearchResult:
         return cls(angle=0.0, scale=0.0, match=MatchResult.empty())
 
 
-def search_template(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 2) -> np.ndarray:
+def search_template(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 1) -> np.ndarray:
     """Search for the template location in the source image using pyramid search.
 
     Args:
@@ -60,8 +60,8 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])
     min_angle, max_angle = (-5, 5)
     min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 4)
-    angle_step_num = 6
-    scale_step_num = 4
+    angle_step_num = 5
+    scale_step_num = 3
     iter_angles = np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1)
     iter_scales = np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1)
     # Initial best values
