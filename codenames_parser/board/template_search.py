@@ -52,6 +52,7 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     """
     # Convert to grayscale
     source_gray = _ensure_grayscale(source_image)
+    source_gray = _zero_pad(source_gray, padding=source_gray.shape[0] // 10)
     template_gray = _ensure_grayscale(template_image)
     # Angle and scale ranges
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])
@@ -101,6 +102,20 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
         best_template=search_result.match.template,
     )
     return matched_image
+
+
+def _zero_pad(image: np.ndarray, padding: int) -> np.ndarray:
+    """Pad the image with zeros on all sides.
+
+    Args:
+        image (np.ndarray): Input image.
+        padding (int): Padding size.
+
+    Returns:
+        np.ndarray: Padded image.
+    """
+    p = padding
+    return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_CONSTANT, value=0)  # type: ignore
 
 
 def _transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
@@ -168,10 +183,10 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
     _, _, _, peak_coords = cv2.minMaxLoc(match_result)
     peak_point = Point(peak_coords[0], peak_coords[1])
-    psr_value = _compute_psr(match_result, peak_point=peak_point)
+    grade = _compute_psr(match_result, peak_point=peak_point)
     result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
     point = Point(peak_coords[0], peak_coords[1])
-    return MatchResult(template=template, location=point, grade=psr_value, result_image=result_image)
+    return MatchResult(template=template, location=point, grade=grade, result_image=result_image)
 
 
 def _compute_psr(match_result: np.ndarray, peak_point: Point) -> float:
