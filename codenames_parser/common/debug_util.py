@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import cv2
 import numpy as np
@@ -68,6 +68,16 @@ def _get_run_folder() -> str:
     if CONTEXT:
         run_dir = os.path.join(run_dir, CONTEXT)
     return run_dir
+
+
+def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str) -> np.ndarray:
+    image = image.copy()
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    pts = [np.array(points, dtype=np.int32)]
+    cv2.polylines(image, pts=pts, isClosed=True, color=(0, 255, 0), thickness=2)
+    save_debug_image(image, title=title)
+    return image
 
 
 def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> np.ndarray:

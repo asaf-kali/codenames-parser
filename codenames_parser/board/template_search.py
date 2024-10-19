@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from codenames_parser.common.align import apply_rotation
-from codenames_parser.common.debug_util import save_debug_image
+from codenames_parser.common.debug_util import draw_polyline, save_debug_image
 from codenames_parser.common.general import ensure_grayscale, has_larger_dimension
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
@@ -99,9 +99,9 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
 
     matched_image = _crop_best_result(
         source_gray,
-        best_angle=search_result.angle,
-        best_location=search_result.match.location,
-        best_template=search_result.match.template,
+        angle=search_result.angle,
+        top_left=search_result.match.location,
+        size=search_result.match.template.shape[:2],
     )
     return matched_image
 
@@ -225,87 +225,64 @@ def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tup
     return float(psr)
 
 
-def _crop_best_result(
-    image: np.ndarray,
-    best_angle: float,
-    best_location: Point,
-    best_template: np.ndarray,
-) -> np.ndarray:
+def _crop_best_result(image: np.ndarray, angle: float, top_left: Point, size: tuple[int, int]) -> np.ndarray:
     """Crop the matched region from the source image, taking rotation into account.
 
     Args:
         image (np.ndarray): Original source image.
-        best_angle (float): Best rotation angle found.
-        best_location (tuple[int, int]): Top-left corner location of the match in the source image.
-        best_template (np.ndarray): Rotated template used for the best match.
+        angle (float): Best rotation angle found.
+        top_left (tuple[int, int]): Top-left corner location of the match in the source image.
+        size (tuple[int, int]): Size of the matched region (height, width).
 
     Returns:
-        np.ndarray: Cropped matched region from the source image.
+        np.ndarray: Cropped and straightened matched region from the source image.
     """
     # Get the size of the rotated template
-    template_h, template_w = best_template.shape[:2]
-
-    # Coordinates of the top-left corner in the source image
-    top_left_x = best_location[0]
-    top_left_y = best_location[1]
-
-    # Center of the template in its own coordinate system
-    # template_center = np.array([template_w / 2, template_h / 2])
-
-    # Define the corners of the rotated template relative to its center
+    height, width = size
+    vrt_center, hrz_center = height / 2, width / 2
+    top_left_x = top_left[0]
+    top_left_y = top_left[1]
+    # Define the corners of the template relative to its center
     corners = np.array(
         [
-            [-template_w / 2, -template_h / 2],
-            [template_w / 2, -template_h / 2],
-            [template_w / 2, template_h / 2],
-            [-template_w / 2, template_h / 2],
+            [-hrz_center, -vrt_center],
+            [hrz_center, -vrt_center],
+            [hrz_center, vrt_center],
+            [-hrz_center, vrt_center],
         ]
     )
-
     # Rotation matrix
-    angle_rad = np.deg2rad(-best_angle)
+    angle_rad = np.deg2rad(-angle)
     rotation_matrix = np.array(
         [
             [np.cos(angle_rad), -np.sin(angle_rad)],
             [np.sin(angle_rad), np.cos(angle_rad)],
         ]
     )
-
-    # Rotate corners
     rotated_corners = np.dot(corners, rotation_matrix.T)
+    matched_corners = rotated_corners + np.array([top_left_x + hrz_center, top_left_y + vrt_center])
+    dst_points = np.array(
+        [
+            [0, 0],
+            [width - 1, 0],
+            [width - 1, height - 1],
+            [0, height - 1],
+        ],
+        dtype=np.float32,
+    )
+    # Source points are the matched corners
+    src_points = matched_corners.astype(np.float32)
 
-    # Shift corners to the match location in the source image
-    matched_corners = rotated_corners + np.array([top_left_x + template_w / 2, top_left_y + template_h / 2])
+    # Compute the perspective transform matrix
+    perspective_t = cv2.getPerspectiveTransform(src_points, dst_points)
 
-    # Get bounding rectangle of the rotated template
-    x_coords = matched_corners[:, 0]
-    y_coords = matched_corners[:, 1]
+    # For debugging, draw the matched region on the source image
+    draw_polyline(image, points=src_points, title="matched region")
 
-    x_min = np.min(x_coords)
-    x_max = np.max(x_coords)
-    y_min = np.min(y_coords)
-    y_max = np.max(y_coords)
-
-    # Create a mask for the rotated template
-    mask = np.zeros_like(image, dtype=np.uint8)  # type: ignore[arg-type]
-    points = matched_corners.astype(np.int32)
-    cv2.fillConvexPoly(mask, points, (255,))
-    save_debug_image(mask, title="mask")
-    # Extract the region of interest using the mask
-    x_min = int(max(0, np.floor(x_min)))
-    x_max = int(min(image.shape[1], np.ceil(x_max)))
-    y_min = int(max(0, np.floor(y_min)))
-    y_max = int(min(image.shape[0], np.ceil(y_max)))
-    roi = image[y_min:y_max, x_min:x_max]
-
-    # Apply mask to the region of interest
-    mask_roi = mask[y_min:y_max, x_min:x_max]
-    matched_image = cv2.bitwise_and(roi, mask_roi)
-
-    # Optionally, crop the matched region tightly around the template
-    # You can also warp the matched region to align it with the template orientation
-    save_debug_image(matched_image, title="matched region")
-    return matched_image
+    # Apply the perspective transform to get the straightened image
+    cropped_image = cv2.warpPerspective(image, M=perspective_t, dsize=(width, height))
+    save_debug_image(cropped_image, title="cropped region")
+    return cropped_image
 
 
 def _log_iteration(i: int, result: SearchResult):
