@@ -11,6 +11,7 @@ from codenames_parser.common.debug_util import (
     save_debug_image,
     set_debug_context,
 )
+from codenames_parser.common.general import ensure_grayscale
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box
 from codenames_parser.resources.resource_manager import get_card_template_path
@@ -21,11 +22,12 @@ log = logging.getLogger(__name__)
 def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
     cards = []
     card_template = read_image(get_card_template_path())
+    card_template_gray = ensure_grayscale(card_template)
     for i, cell in enumerate(cells):
         set_debug_context(f"card {i}")
         log.info(SEPARATOR)
         log.info(f"Processing card {i}")
-        card = _parse_card(cell, language=language, card_template=card_template)
+        card = _parse_card(cell, language=language, card_template=card_template_gray)
         cards.append(card)
     return cards
 

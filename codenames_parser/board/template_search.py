@@ -6,7 +6,13 @@ import numpy as np
 
 from codenames_parser.common.align import apply_rotation
 from codenames_parser.common.debug_util import save_debug_image
+from codenames_parser.common.general import (
+    ensure_grayscale,
+    has_larger_dimension,
+    zero_pad,
+)
 from codenames_parser.common.models import Point
+from codenames_parser.common.scale import downsample_image
 
 log = logging.getLogger(__name__)
 
@@ -51,9 +57,9 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
         np.ndarray: Matched region from the source image.
     """
     # Convert to grayscale
-    source_gray = _ensure_grayscale(source_image)
-    source_gray = _zero_pad(source_gray, padding=source_gray.shape[0] // 10)
-    template_gray = _ensure_grayscale(template_image)
+    source_gray = ensure_grayscale(source_image)
+    source_gray = zero_pad(source_gray, padding=source_gray.shape[0] // 10)
+    template_gray = ensure_grayscale(template_image)
     # Angle and scale ranges
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])
     min_angle, max_angle = (-5, 5)
@@ -71,7 +77,7 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
         factor = 2 ** (num_iterations - i)
         log.info(f"Iteration {i}: downsample factor={factor}")
         source_gray = apply_rotation(image=source_gray, angle_degrees=-search_result.angle)
-        source_downsample = _downsample_image(source_gray, factor=factor)
+        source_downsample = downsample_image(source_gray, factor=factor)
         save_debug_image(source_downsample, title=f"source downsample {i}")
 
         iteration_search_result = SearchResult.empty()
@@ -83,7 +89,7 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
                 # Transform template
                 template_transformed = _transform_template(template_gray, angle, scale, factor=factor)
                 # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
-                if _has_larger_dimension(template_transformed, source_downsample):
+                if has_larger_dimension(template_transformed, source_downsample):
                     continue
                 # Perform template matching
                 match_result = _match_template(source=source_downsample, template=template_transformed)
@@ -102,20 +108,6 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
         best_template=search_result.match.template,
     )
     return matched_image
-
-
-def _zero_pad(image: np.ndarray, padding: int) -> np.ndarray:
-    """Pad the image with zeros on all sides.
-
-    Args:
-        image (np.ndarray): Input image.
-        padding (int): Padding size.
-
-    Returns:
-        np.ndarray: Padded image.
-    """
-    p = padding
-    return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_CONSTANT, value=0)  # type: ignore
 
 
 def _transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
@@ -226,24 +218,6 @@ def _compute_psr(match_result: np.ndarray, peak_point: Point) -> float:
     return float(psr)
 
 
-def _downsample_image(image: np.ndarray, factor: int) -> np.ndarray:
-    """Downsample the image by the given factor.
-
-    Args:
-        image (np.ndarray): Input image.
-        factor (int): Downsampling factor.
-
-    Returns:
-        np.ndarray: Downsampled image.
-    """
-    if factor == 1:
-        return image
-    height, width = image.shape[:2]
-    new_size = (width // factor, height // factor)
-    downsampled_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
-    return downsampled_image
-
-
 def _crop_best_result(
     image: np.ndarray,
     best_angle: float,
@@ -334,13 +308,3 @@ def _log_iteration(i: int, result: SearchResult):
     save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
     save_debug_image(match.result_image, title=f"best match {i} ({match.grade:.3f})")
     log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} value={match.grade:<6.3f}")
-
-
-def _has_larger_dimension(image: np.ndarray, other: np.ndarray) -> bool:
-    return image.shape[0] > other.shape[0] or image.shape[1] > other.shape[1]
-
-
-def _ensure_grayscale(image: np.ndarray) -> np.ndarray:
-    if len(image.shape) == 3:
-        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return image
