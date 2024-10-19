@@ -8,4 +8,4 @@ def get_resource_path(file: str) -> str:
 
 
 def get_card_template_path():
-    return get_resource_path("card_template.png")
+    return get_resource_path("card_template.jpg")
