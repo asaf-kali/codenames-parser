@@ -13,13 +13,19 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class MatchResult:
+    template: np.ndarray
+    result_image: np.ndarray
     location: Point
-    psr: float
-    result: np.ndarray | None = None
+    grade: float
 
     @classmethod
     def empty(cls):
-        return cls(location=Point(0, 0), psr=-np.inf)
+        return cls(
+            template=np.zeros((1, 1), dtype=np.uint8),
+            result_image=np.zeros((1, 1), dtype=np.uint8),
+            location=Point(0, 0),
+            grade=-np.inf,
+        )
 
 
 # pylint: disable=too-many-statements
@@ -49,7 +55,6 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     # Initial best values
     best_angle = 0.0
     best_scale = max_scale
-    best_template = iteration_best_template = template_gray
     best_match = MatchResult.empty()
 
     # Iterate
@@ -62,9 +67,9 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
         save_debug_image(source_downsample, title=f"source downsample {i}")
 
         # Variables to store best match in this iteration
-        iteration_best_match = MatchResult.empty()
         iteration_best_angle = 0.0
         iteration_best_scale = best_scale
+        iteration_best_match = MatchResult.empty()
 
         # For each angle and scale
         for angle in iter_angles:
@@ -79,25 +84,24 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
                 # Perform template matching
                 match_result = _match_template(source=source_downsample, template=template_transformed)
                 # Update best match if necessary
-                if match_result.psr > iteration_best_match.psr:
+                if match_result.grade > iteration_best_match.grade:
                     iteration_best_angle = angle
                     iteration_best_scale = scale
-                    iteration_best_template = template_transformed.copy()
                     iteration_best_match = match_result
 
         # Update best values for next iteration
         best_angle = iteration_best_angle
         best_scale = iteration_best_scale
-        best_template = iteration_best_template
         best_match = iteration_best_match
-        save_debug_image(best_template, title=f"best template {i} ({best_angle:.2f}°, X{best_scale:.2f})")
-        log.info(f"Iteration {i}: angle={best_angle:<6.2f} scale={best_scale:<6.2f} value={best_match.psr:<6.2f}")
+        save_debug_image(best_match.template, title=f"best template {i} ({best_angle:.2f}°, X{best_scale:.2f})")
+        save_debug_image(best_match.result_image, title=f"best match {i} ({best_match.grade:.3f})")
+        log.info(f"Iteration {i}: angle={best_angle:<6.2f} scale={best_scale:<6.2f} value={best_match.grade:<6.3f}")
 
     matched_image = _crop_best_result(
         source_gray,
         best_angle=best_angle,
         best_location=best_match.location,
-        best_template=best_template,
+        best_template=best_match.template,
     )
     return matched_image
 
@@ -227,10 +231,10 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     _, _, _, peak_coords = cv2.minMaxLoc(match_result)
     peak_point = Point(peak_coords[0], peak_coords[1])
     psr_value = _compute_psr(match_result, peak_point=peak_point)
-    # result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+    result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
     # save_debug_image(result_image, title=f"match result {psr_value:.3f}")
     point = Point(peak_coords[0], peak_coords[1])
-    return MatchResult(location=point, psr=psr_value, result=match_result)
+    return MatchResult(template=template, location=point, grade=psr_value, result_image=result_image)
 
 
 def _crop_best_result(
