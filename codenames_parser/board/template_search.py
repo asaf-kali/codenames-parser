@@ -242,8 +242,6 @@ def _crop_best_result(
     Returns:
         np.ndarray: Cropped matched region from the source image.
     """
-    image_rotated = apply_rotation(image=image, angle_degrees=-best_angle)
-    save_debug_image(image_rotated, title="rotated image")
     # Get the size of the rotated template
     template_h, template_w = best_template.shape[:2]
 
@@ -265,7 +263,7 @@ def _crop_best_result(
     )
 
     # Rotation matrix
-    angle_rad = np.deg2rad(0)
+    angle_rad = np.deg2rad(-best_angle)
     rotation_matrix = np.array(
         [
             [np.cos(angle_rad), -np.sin(angle_rad)],
@@ -289,16 +287,16 @@ def _crop_best_result(
     y_max = np.max(y_coords)
 
     # Create a mask for the rotated template
-    mask = np.zeros_like(image_rotated, dtype=np.uint8)  # type: ignore[arg-type]
+    mask = np.zeros_like(image, dtype=np.uint8)  # type: ignore[arg-type]
     points = matched_corners.astype(np.int32)
     cv2.fillConvexPoly(mask, points, (255,))
     save_debug_image(mask, title="mask")
     # Extract the region of interest using the mask
     x_min = int(max(0, np.floor(x_min)))
-    x_max = int(min(image_rotated.shape[1], np.ceil(x_max)))
+    x_max = int(min(image.shape[1], np.ceil(x_max)))
     y_min = int(max(0, np.floor(y_min)))
-    y_max = int(min(image_rotated.shape[0], np.ceil(y_max)))
-    roi = image_rotated[y_min:y_max, x_min:x_max]
+    y_max = int(min(image.shape[0], np.ceil(y_max)))
+    roi = image[y_min:y_max, x_min:x_max]
 
     # Apply mask to the region of interest
     mask_roi = mask[y_min:y_max, x_min:x_max]
