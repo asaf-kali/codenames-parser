@@ -40,11 +40,9 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
     actual_card = pyramid_image_search(source_image=image, template_image=card_template)
-    # scale_result = scale_down_image(image, max_dimension=250)
-    # alignment_result = align_image(scale_result.image)
-    # image_aligned = apply_rotations(image=image, rotations=alignment_result.rotations)
-    # boxes = pytesseract.image_to_boxes(image_aligned, lang=language)
-    # color_distance = color_distance_mask(alignment_result.aligned_image, color=WHITE, percentile=80)
+    # card_equalized = cv2.equalizeHist(actual_card)
+    # save_debug_image(card_equalized, title="equalized card")
+    # alignment_result = align_image(image=card_equalized)
     text = _extract_text(actual_card, language=language)
     return text
 
