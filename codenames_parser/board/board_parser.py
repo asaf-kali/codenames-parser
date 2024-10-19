@@ -33,9 +33,9 @@ def _crop_cells(
 ) -> list[np.ndarray]:
     image_rotated = apply_rotations(image, rotations=rotations)
     boxes_scaled = [_scale_box(box, scale_factor) for box in boxes]
-    draw_boxes(image_rotated, boxes=boxes_scaled, title="boxes scaled")
+    draw_boxes(image_rotated, boxes=boxes_scaled, title="boxes scaled", thickness=5)
     boxes_enlarged = [_box_enlarged(box, factor=enlarge_factor) for box in boxes_scaled]
-    draw_boxes(image_rotated, boxes=boxes_enlarged, title="boxes enlarged")
+    draw_boxes(image_rotated, boxes=boxes_enlarged, title="boxes enlarged", thickness=5)
     cells = [crop_by_box(image_rotated, box=box) for box in boxes_enlarged]
     return cells
 

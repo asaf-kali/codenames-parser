@@ -23,7 +23,7 @@ BOARD1_TOP_CASE = ParseBoardTestCase(
         "עורב",
         "נפח",
         "צמח",
-        "גדול",
+        "ברזל",
         "מערה",
         "טרול",
         "זומבי",
@@ -70,5 +70,3 @@ BOARD3_TOP_CASE = ParseBoardTestCase(
         "אופק",
     ],
 )
-
-BOARD_CASES = [BOARD1_TOP_CASE, BOARD3_TOP_CASE]

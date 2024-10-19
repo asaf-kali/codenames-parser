@@ -31,6 +31,7 @@ class Counter:
 
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 LINE_DRAW_SIZE = 1000
+BOX_COLOR = (0, 255, 0)
 RUN_COUNT = Counter()
 SEPARATOR = "---------------------------------"
 CONTEXT = ""
@@ -82,12 +83,14 @@ def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> np.ndarr
     return image
 
 
-def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str) -> np.ndarray:
+def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2) -> np.ndarray:
     image = image.copy()
     if len(image.shape) == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     for box in boxes:
-        cv2.rectangle(image, pt1=(box.x, box.y), pt2=(box.x + box.w, box.y + box.h), color=(0, 255, 0), thickness=2)
+        top_left = (box.x, box.y)
+        bottom_right = (box.x + box.w, box.y + box.h)
+        cv2.rectangle(image, pt1=top_left, pt2=bottom_right, color=BOX_COLOR, thickness=thickness)
     save_debug_image(image, title=title)
     return image
 
