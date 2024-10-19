@@ -1,5 +1,4 @@
 import logging
-import os
 
 import pytest
 from codenames.game.board import Board
@@ -8,16 +7,11 @@ from codenames.game.card import Card
 from codenames_parser.board.board_parser import parse_board
 from codenames_parser.common.grid_detection import GRID_WIDTH
 from codenames_parser.common.models import Grid
-from tests.board_cases import BOARD_CASES
+from tests.b_board.cases import BOARD_CASES
 from tests.fixtures import get_fixture_path
 from tests.utils import print_diff
 
 log = logging.getLogger(__name__)
-
-
-@pytest.fixture(autouse=True)
-def set_env_vars():
-    os.environ["DEBUG_DISABLED"] = "true"
 
 
 @pytest.mark.parametrize("fixture_file,language,expected_words", BOARD_CASES)

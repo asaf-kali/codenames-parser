@@ -5,12 +5,12 @@ from codenames.game.color import CardColor
 from codenames_parser.common.models import Grid
 
 
-class MapTestCase(NamedTuple):
+class ColorMapTestCase(NamedTuple):
     fixture_file: str
     expected_grid: Grid[CardColor]
 
 
-CASE_TOP_VIEW = MapTestCase(
+CASE_TOP_VIEW = ColorMapTestCase(
     fixture_file="top_view.png",
     expected_grid=Grid.from_rows(
         [
@@ -23,7 +23,7 @@ CASE_TOP_VIEW = MapTestCase(
     ),
 )
 
-CASE_CUT_ROTATED = MapTestCase(
+CASE_CUT_ROTATED = ColorMapTestCase(
     fixture_file="cut_rotated.png",
     expected_grid=Grid.from_rows(
         [
@@ -36,7 +36,7 @@ CASE_CUT_ROTATED = MapTestCase(
     ),
 )
 
-CASE_HIGH_RES = MapTestCase(
+CASE_HIGH_RES = ColorMapTestCase(
     fixture_file="high_res.png",
     expected_grid=Grid.from_rows(
         [
@@ -49,7 +49,7 @@ CASE_HIGH_RES = MapTestCase(
     ),
 )
 
-CASE_SMALL_1 = MapTestCase(
+CASE_SMALL_1 = ColorMapTestCase(
     fixture_file="small_1.png",
     expected_grid=Grid.from_rows(
         [
