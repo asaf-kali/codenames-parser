@@ -58,24 +58,3 @@ def _box_enlarged(box: Box, factor: float) -> Box:
         w=int(box.w + x_diff),
         h=int(box.h + y_diff),
     )
-
-
-# def _translate_boxes(boxes: list[Box], scale_factor: float, rotation_degrees: float) -> list[Box]:
-#     translation_matrix = cv2.getRotationMatrix2D(center=(0, 0), angle=rotation_degrees, scale=1 / scale_factor)
-#
-#     def translate_box(box: Box) -> Box:
-#         x1, y1 = box.x, box.y
-#         x2, y2 = box.x + box.w, box.y + box.h
-#         top_left = (x1, y1, 1)
-#         bottom_right = (x2, y2, 1)
-#         new_top_left = translation_matrix @ top_left
-#         new_bottom_right = translation_matrix @ bottom_right
-#         return Box(
-#             x=int(new_top_left[0]),
-#             y=int(new_top_left[1]),
-#             w=int(new_bottom_right[0] - new_top_left[0]),
-#             h=int(new_bottom_right[1] - new_top_left[1]),
-#         )
-#
-#     translated_boxes = [translate_box(box) for box in boxes]
-#     return translated_boxes
