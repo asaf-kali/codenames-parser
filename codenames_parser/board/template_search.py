@@ -171,42 +171,53 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
     _, _, _, peak_coords = cv2.minMaxLoc(match_result)
     peak_point = Point(peak_coords[0], peak_coords[1])
-    grade = _compute_psr(match_result, peak_point=peak_point)
+    grade = _grade_match(match_result, peak_point=peak_point, template_size=template.shape[:2])
     result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
     point = Point(peak_coords[0], peak_coords[1])
     return MatchResult(template=template, location=point, grade=grade, result_image=result_image)
 
 
-def _compute_psr(match_result: np.ndarray, peak_point: Point) -> float:
-    """Compute the Peak-to-Sidelobe Ratio (PSR).
+def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tuple[int, int]) -> float:
+    """Compute the Peak-to-Sidelobe Ratio (PSR) with improved exclude region size.
 
     Args:
         match_result (np.ndarray): Result from template matching.
         peak_point (Point): Coordinates of the peak correlation value.
+        template_size (Tuple[int, int]): Size of the template (height, width).
 
     Returns:
         float: PSR value.
     """
     if peak_point == (0, 0):
         return -np.inf
+
     peak_value = match_result[peak_point[1], peak_point[0]]
 
-    # Exclude a small region around the peak
+    # Exclude a region around the peak proportional to the template size
     mask = np.ones_like(match_result, dtype=bool)
     h, w = match_result.shape
     peak_x, peak_y = peak_point
-    exclude_size = int(min(h, w) * 0.1)  # Exclude 10% of the smallest dimension
-    x_start = max(0, peak_x - exclude_size)
-    x_end = min(w, peak_x + exclude_size + 1)
-    y_start = max(0, peak_y - exclude_size)
-    y_end = min(h, peak_y + exclude_size + 1)
+    template_h, template_w = template_size
+
+    # Define exclude size, ensuring a minimum size to avoid small masks
+    min_exclude_size = 5
+    exclude_size_x = max(min_exclude_size, int(template_w * 0.2))
+    exclude_size_y = max(min_exclude_size, int(template_h * 0.2))
+
+    x_start = max(0, peak_x - exclude_size_x)
+    x_end = min(w, peak_x + exclude_size_x + 1)
+    y_start = max(0, peak_y - exclude_size_y)
+    y_end = min(h, peak_y + exclude_size_y + 1)
     mask[y_start:y_end, x_start:x_end] = False
 
+    # Calculate sidelobe statistics
     sidelobe = match_result[mask]
+    if sidelobe.size == 0:
+        return -np.inf
     mean_sidelobe = np.mean(sidelobe)
     std_sidelobe = np.std(sidelobe)
 
-    # Avoid division by zero
+    # Avoid division by zero and invalid PSR
     if std_sidelobe == 0:
         return -np.inf
 
@@ -278,15 +289,15 @@ def _crop_best_result(
     y_max = np.max(y_coords)
 
     # Create a mask for the rotated template
-    mask = np.zeros_like(image, dtype=np.uint8)  # type: ignore[arg-type]
+    mask = np.zeros_like(image_rotated, dtype=np.uint8)  # type: ignore[arg-type]
     points = matched_corners.astype(np.int32)
     cv2.fillConvexPoly(mask, points, (255,))
     save_debug_image(mask, title="mask")
     # Extract the region of interest using the mask
     x_min = int(max(0, np.floor(x_min)))
-    x_max = int(min(image.shape[1], np.ceil(x_max)))
+    x_max = int(min(image_rotated.shape[1], np.ceil(x_max)))
     y_min = int(max(0, np.floor(y_min)))
-    y_max = int(min(image.shape[0], np.ceil(y_max)))
+    y_max = int(min(image_rotated.shape[0], np.ceil(y_max)))
     roi = image_rotated[y_min:y_max, x_min:x_max]
 
     # Apply mask to the region of interest
