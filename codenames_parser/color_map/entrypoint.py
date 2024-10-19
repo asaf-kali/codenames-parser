@@ -1,6 +1,7 @@
 import sys
 
 from codenames_parser.color_map.color_map_parser import parse_color_map
+from codenames_parser.common.grid_detection import GRID_WIDTH
 from codenames_parser.common.logging import configure_logging
 
 
@@ -10,11 +11,11 @@ def entrypoint():
         print(f"Usage: python {sys.argv[0]} <image_path>")
         sys.exit(1)
     image_path = sys.argv[1]
-    grid = parse_color_map(image_path)
-    for row in grid.rows:
-        for cell in row:
-            print(cell.emoji, end=" ")
-        print("")
+    map_colors = parse_color_map(image_path)
+    for i, color in enumerate(map_colors):
+        if i % GRID_WIDTH == 0:
+            print()
+        print(color.emoji, end=" ")
 
 
 if __name__ == "__main__":

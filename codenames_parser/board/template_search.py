@@ -240,8 +240,7 @@ def _crop_best_result(image: np.ndarray, angle: float, top_left: Point, size: tu
     # Get the size of the rotated template
     height, width = size
     vrt_center, hrz_center = height / 2, width / 2
-    top_left_x = top_left[0]
-    top_left_y = top_left[1]
+    top_left_x, top_left_y = top_left
     # Define the corners of the template relative to its center
     corners = np.array(
         [
