@@ -28,7 +28,17 @@ class MatchResult:
         )
 
 
-# pylint: disable=too-many-statements
+@dataclass
+class SearchResult:
+    angle: float
+    scale: float
+    match: MatchResult
+
+    @classmethod
+    def empty(cls):
+        return cls(angle=0.0, scale=0.0, match=MatchResult.empty())
+
+
 def search_template(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 2) -> np.ndarray:
     """Search for the template location in the source image using pyramid search.
 
@@ -40,10 +50,10 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     Returns:
         np.ndarray: Matched region from the source image.
     """
-    # Convert to grayscale if necessary
+    # Convert to grayscale
     source_gray = _ensure_grayscale(source_image)
     template_gray = _ensure_grayscale(template_image)
-    # Initial angle and scale ranges
+    # Angle and scale ranges
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])
     min_angle, max_angle = (-5, 5)
     min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 4)
@@ -51,84 +61,49 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     scale_step_num = 4
     iter_angles = np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1)
     iter_scales = np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1)
-
     # Initial best values
-    best_angle = 0.0
-    best_scale = max_scale
-    best_match = MatchResult.empty()
+    search_result = SearchResult.empty()
 
     # Iterate
     for i in range(1, num_iterations + 1):
         # Downsample factor
         factor = 2 ** (num_iterations - i)
         log.info(f"Iteration {i}: downsample factor={factor}")
-        source_gray = apply_rotation(image=source_gray, angle_degrees=-best_angle)
-        source_downsample = downsample_image(source_gray, factor=factor)
+        source_gray = apply_rotation(image=source_gray, angle_degrees=-search_result.angle)
+        source_downsample = _downsample_image(source_gray, factor=factor)
         save_debug_image(source_downsample, title=f"source downsample {i}")
 
-        # Variables to store best match in this iteration
-        iteration_best_angle = 0.0
-        iteration_best_scale = best_scale
-        iteration_best_match = MatchResult.empty()
-
+        iteration_search_result = SearchResult.empty()
         # For each angle and scale
         for angle in iter_angles:
             for scale in iter_scales:
                 if scale > max_scale:
                     continue
                 # Transform template
-                template_transformed = transform_template(template_gray, angle, scale, factor=factor)
-                save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
+                template_transformed = _transform_template(template_gray, angle, scale, factor=factor)
+                # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
                 if _has_larger_dimension(template_transformed, source_downsample):
                     continue
                 # Perform template matching
                 match_result = _match_template(source=source_downsample, template=template_transformed)
+                # save_debug_image(match_result.result_image, title=f"match result {match_result.grade:.3f}")
                 # Update best match if necessary
-                if match_result.grade > iteration_best_match.grade:
-                    iteration_best_angle = angle
-                    iteration_best_scale = scale
-                    iteration_best_match = match_result
+                if match_result.grade > iteration_search_result.match.grade:
+                    iteration_search_result = SearchResult(angle=angle, scale=scale, match=match_result)
 
-        # Update best values for next iteration
-        best_angle = iteration_best_angle
-        best_scale = iteration_best_scale
-        best_match = iteration_best_match
-        save_debug_image(best_match.template, title=f"best template {i} ({best_angle:.2f}°, X{best_scale:.2f})")
-        save_debug_image(best_match.result_image, title=f"best match {i} ({best_match.grade:.3f})")
-        log.info(f"Iteration {i}: angle={best_angle:<6.2f} scale={best_scale:<6.2f} value={best_match.grade:<6.3f}")
+        _log_iteration(i, result=iteration_search_result)
+        search_result = iteration_search_result
 
     matched_image = _crop_best_result(
         source_gray,
-        best_angle=best_angle,
-        best_location=best_match.location,
-        best_template=best_match.template,
+        best_angle=search_result.angle,
+        best_location=search_result.match.location,
+        best_template=search_result.match.template,
     )
     return matched_image
 
 
-def _has_larger_dimension(image: np.ndarray, other: np.ndarray) -> bool:
-    return image.shape[0] > other.shape[0] or image.shape[1] > other.shape[1]
-
-
-def downsample_image(image: np.ndarray, factor: int) -> np.ndarray:
-    """Downsample the image by the given factor.
-
-    Args:
-        image (np.ndarray): Input image.
-        factor (int): Downsampling factor.
-
-    Returns:
-        np.ndarray: Downsampled image.
-    """
-    if factor == 1:
-        return image
-    height, width = image.shape[:2]
-    new_size = (width // factor, height // factor)
-    downsampled_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
-    return downsampled_image
-
-
-def transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
+def _transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
     """Rotate and scale the template image, including downsampling factor, with minimal padding to prevent pixel loss.
 
     Args:
@@ -180,6 +155,25 @@ def transform_template(template: np.ndarray, angle: float, scale: float, factor:
     return rotated_template
 
 
+def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
+    """Perform template matching using normalized cross-correlation.
+
+    Args:
+        source (np.ndarray): Source image.
+        template (np.ndarray): Template image.
+
+    Returns:
+        np.ndarray: Matching result.
+    """
+    match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
+    _, _, _, peak_coords = cv2.minMaxLoc(match_result)
+    peak_point = Point(peak_coords[0], peak_coords[1])
+    psr_value = _compute_psr(match_result, peak_point=peak_point)
+    result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
+    point = Point(peak_coords[0], peak_coords[1])
+    return MatchResult(template=template, location=point, grade=psr_value, result_image=result_image)
+
+
 def _compute_psr(match_result: np.ndarray, peak_point: Point) -> float:
     """Compute the Peak-to-Sidelobe Ratio (PSR).
 
@@ -217,24 +211,22 @@ def _compute_psr(match_result: np.ndarray, peak_point: Point) -> float:
     return float(psr)
 
 
-def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
-    """Perform template matching using normalized cross-correlation.
+def _downsample_image(image: np.ndarray, factor: int) -> np.ndarray:
+    """Downsample the image by the given factor.
 
     Args:
-        source (np.ndarray): Source image.
-        template (np.ndarray): Template image.
+        image (np.ndarray): Input image.
+        factor (int): Downsampling factor.
 
     Returns:
-        np.ndarray: Matching result.
+        np.ndarray: Downsampled image.
     """
-    match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
-    _, _, _, peak_coords = cv2.minMaxLoc(match_result)
-    peak_point = Point(peak_coords[0], peak_coords[1])
-    psr_value = _compute_psr(match_result, peak_point=peak_point)
-    result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
-    # save_debug_image(result_image, title=f"match result {psr_value:.3f}")
-    point = Point(peak_coords[0], peak_coords[1])
-    return MatchResult(template=template, location=point, grade=psr_value, result_image=result_image)
+    if factor == 1:
+        return image
+    height, width = image.shape[:2]
+    new_size = (width // factor, height // factor)
+    downsampled_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
+    return downsampled_image
 
 
 def _crop_best_result(
@@ -320,6 +312,17 @@ def _crop_best_result(
     # You can also warp the matched region to align it with the template orientation
     save_debug_image(matched_image, title="matched region")
     return matched_image
+
+
+def _log_iteration(i: int, result: SearchResult):
+    match = result.match
+    save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
+    save_debug_image(match.result_image, title=f"best match {i} ({match.grade:.3f})")
+    log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} value={match.grade:<6.3f}")
+
+
+def _has_larger_dimension(image: np.ndarray, other: np.ndarray) -> bool:
+    return image.shape[0] > other.shape[0] or image.shape[1] > other.shape[1]
 
 
 def _ensure_grayscale(image: np.ndarray) -> np.ndarray:
