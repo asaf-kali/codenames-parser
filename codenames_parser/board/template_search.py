@@ -6,11 +6,7 @@ import numpy as np
 
 from codenames_parser.common.align import apply_rotation
 from codenames_parser.common.debug_util import save_debug_image
-from codenames_parser.common.general import (
-    ensure_grayscale,
-    has_larger_dimension,
-    zero_pad,
-)
+from codenames_parser.common.general import ensure_grayscale, has_larger_dimension
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
 
@@ -58,7 +54,7 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     """
     # Convert to grayscale
     source_gray = ensure_grayscale(source_image)
-    source_gray = zero_pad(source_gray, padding=source_gray.shape[0] // 10)
+    # source_gray = border_pad(source_gray, padding=source_gray.shape[0] // 10)
     template_gray = ensure_grayscale(template_image)
     # Angle and scale ranges
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])

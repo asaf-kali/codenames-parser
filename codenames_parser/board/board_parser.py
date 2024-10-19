@@ -22,7 +22,7 @@ def parse_board(image_path: str, language: str) -> list[str]:
         boxes=boxes,
         scale_factor=1 / scale_result.scale_factor,
         rotations=alignment_result.rotations,
-        enlarge_factor=0.20,
+        enlarge_factor=0.25,
     )
     cards = parse_cards(cells, language=language)
     return cards
