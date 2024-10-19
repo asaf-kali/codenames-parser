@@ -1,9 +1,9 @@
 import logging
-from typing import Tuple
 
 import cv2
 import numpy as np
 
+from codenames_parser.common.align import apply_rotation
 from codenames_parser.common.debug_util import save_debug_image
 
 log = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def compute_psr(match_result: np.ndarray, peak_coords: tuple[int, int]) -> float
 
     Args:
         match_result (np.ndarray): Result from template matching.
-        peak_coords (Tuple[int, int]): Coordinates of the peak correlation value.
+        peak_coords (tuple[int, int]): Coordinates of the peak correlation value.
 
     Returns:
         float: PSR value.
@@ -95,14 +95,14 @@ def compute_psr(match_result: np.ndarray, peak_coords: tuple[int, int]) -> float
     return float(psr)
 
 
-def find_best_match(match_result: np.ndarray) -> Tuple[int, int, float]:
+def find_best_match(match_result: np.ndarray) -> tuple[int, int, float]:
     """Find the best match location and compute its PSR value.
 
     Args:
         match_result (np.ndarray): Result from template matching.
 
     Returns:
-        Tuple[int, int, float]: Best location (x, y) and PSR value.
+        tuple[int, int, float]: Best location (x, y) and PSR value.
     """
     _, _, _, max_loc = cv2.minMaxLoc(match_result)
     psr_value = compute_psr(match_result, max_loc)  # type: ignore[arg-type]
@@ -132,7 +132,7 @@ def _ensure_graysacle(image: np.ndarray) -> np.ndarray:
 
 
 # pylint: disable=too-many-statements
-def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 3) -> np.ndarray:
+def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 2) -> np.ndarray:
     """Search for the template location in the source image using pyramid search.
 
     Args:
@@ -143,16 +143,17 @@ def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, n
     Returns:
         np.ndarray: Matched region from the source image.
     """
+    # Convert to grayscale if necessary
     source_gray = _ensure_graysacle(source_image)
     template_gray = _ensure_graysacle(template_image)
     # Initial angle and scale ranges
     scale_ratio = max(template_image.shape[0] / source_image.shape[0], template_image.shape[1] / source_image.shape[1])
-    min_scale, max_scale = 0.03, round(1.0 / scale_ratio, 3)
-    min_angle, max_angle = (-30, 30)
+    min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 3)
+    min_angle, max_angle = (-5, 5)
 
     # Initial step sizes
-    angle_step_num = 5
-    scale_step_num = 3
+    angle_step_num = 10
+    scale_step_num = 5
     angle_step = 5.0
     scale_step = 0.1
 
@@ -161,19 +162,19 @@ def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, n
     best_scale = max_scale
     best_location = (0, 0)
     best_template = iteration_best_template = template_gray
-    # best_value = -np.inf
 
     # Iterate
     for i in range(1, num_iterations + 1):
         # Downsample factor
         factor = 2 ** (num_iterations - i)
         log.info(f"Iteration {i}: downsample factor={factor}")
+        source_gray = apply_rotation(image=source_gray, angle_degrees=-best_angle)
         source_downsampled = downsample_image(source_gray, factor)
         save_debug_image(source_downsampled, title=f"source downsampled {i}")
         # template_downsampled = scale_down_image(image=template_gray, max_dimension=max(source_downsampled.shape)).image  # noqa pylint: disable=line-too-long
         # Update angle and scale ranges
-        iter_angle_min = max(min_angle, best_angle - angle_step * angle_step_num)
-        iter_angle_max = min(max_angle, best_angle + angle_step * angle_step_num)
+        iter_angle_min = min_angle  # max(min_angle, best_angle - angle_step * angle_step_num)
+        iter_angle_max = max_angle  # min(max_angle, best_angle + angle_step * angle_step_num)
         iter_angles = np.linspace(iter_angle_min, iter_angle_max, num=angle_step_num * 2 + 1)
 
         iter_scale_min = max(min_scale, best_scale - scale_step * scale_step_num)
@@ -187,6 +188,8 @@ def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, n
         iteration_best_location = best_location
 
         # For each angle and scale
+        log.info(f"Angle range: {iter_angle_min < 5:.2f} to {iter_angle_max:.2f}")
+        log.info(f"Scale range: {iter_scale_min < 5:.2f} to {iter_scale_max:.2f}")
         for angle in iter_angles:
             for scale in iter_scales:
                 if scale > max_scale:
@@ -220,20 +223,95 @@ def pyramid_image_search(source_image: np.ndarray, template_image: np.ndarray, n
         scale_step = scale_step / 2.0
         log.debug(f"New step sizes: angle={angle_step:<6.2f} scale={scale_step:<6.2f}")
 
-    # Extract the matched region
+    matched_image = _crop_best_result(
+        source_gray,
+        best_angle=best_angle,
+        best_location=best_location,
+        best_template=best_template,
+    )
+    return matched_image
+
+
+def _crop_best_result(
+    image: np.ndarray,
+    best_angle: float,
+    best_location: tuple[int, int],
+    best_template: np.ndarray,
+) -> np.ndarray:
+    """Crop the matched region from the source image, taking rotation into account.
+
+    Args:
+        image (np.ndarray): Original source image.
+        best_angle (float): Best rotation angle found.
+        best_location (tuple[int, int]): Top-left corner location of the match in the source image.
+        best_template (np.ndarray): Rotated template used for the best match.
+
+    Returns:
+        np.ndarray: Cropped matched region from the source image.
+    """
+    image_rotated = apply_rotation(image=image, angle_degrees=-best_angle)
+    save_debug_image(image_rotated, title="rotated image")
+    # Get the size of the rotated template
+    template_h, template_w = best_template.shape[:2]
+
+    # Coordinates of the top-left corner in the source image
     top_left_x = best_location[0]
     top_left_y = best_location[1]
-    template_h, template_w = best_template.shape[:2]
-    bottom_right_x = top_left_x + template_w
-    bottom_right_y = top_left_y + template_h
 
-    # Ensure indices are within image boundaries
-    height, width = source_image.shape[:2]
-    top_left_x = max(0, min(top_left_x, width - 1))
-    top_left_y = max(0, min(top_left_y, height - 1))
-    bottom_right_x = max(0, min(bottom_right_x, width))
-    bottom_right_y = max(0, min(bottom_right_y, height))
+    # Center of the template in its own coordinate system
+    # template_center = np.array([template_w / 2, template_h / 2])
 
-    matched_image = source_image[top_left_y:bottom_right_y, top_left_x:bottom_right_x]
-    save_debug_image(matched_image, title="matched image")
+    # Define the corners of the rotated template relative to its center
+    corners = np.array(
+        [
+            [-template_w / 2, -template_h / 2],
+            [template_w / 2, -template_h / 2],
+            [template_w / 2, template_h / 2],
+            [-template_w / 2, template_h / 2],
+        ]
+    )
+
+    # Rotation matrix
+    angle_rad = np.deg2rad(0)
+    rotation_matrix = np.array(
+        [
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad), np.cos(angle_rad)],
+        ]
+    )
+
+    # Rotate corners
+    rotated_corners = np.dot(corners, rotation_matrix.T)
+
+    # Shift corners to the match location in the source image
+    matched_corners = rotated_corners + np.array([top_left_x + template_w / 2, top_left_y + template_h / 2])
+
+    # Get bounding rectangle of the rotated template
+    x_coords = matched_corners[:, 0]
+    y_coords = matched_corners[:, 1]
+
+    x_min = np.min(x_coords)
+    x_max = np.max(x_coords)
+    y_min = np.min(y_coords)
+    y_max = np.max(y_coords)
+
+    # Create a mask for the rotated template
+    mask = np.zeros_like(image, dtype=np.uint8)  # type: ignore[arg-type]
+    points = matched_corners.astype(np.int32)
+    cv2.fillConvexPoly(mask, points, (255,))
+    save_debug_image(mask, title="mask")
+    # Extract the region of interest using the mask
+    x_min = int(max(0, np.floor(x_min)))
+    x_max = int(min(image.shape[1], np.ceil(x_max)))
+    y_min = int(max(0, np.floor(y_min)))
+    y_max = int(min(image.shape[0], np.ceil(y_max)))
+    roi = image_rotated[y_min:y_max, x_min:x_max]
+
+    # Apply mask to the region of interest
+    mask_roi = mask[y_min:y_max, x_min:x_max]
+    matched_image = cv2.bitwise_and(roi, mask_roi)
+
+    # Optionally, crop the matched region tightly around the template
+    # You can also warp the matched region to align it with the template orientation
+    save_debug_image(matched_image, title="matched region")
     return matched_image

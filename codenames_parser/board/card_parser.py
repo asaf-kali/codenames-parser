@@ -5,7 +5,6 @@ import pytesseract
 
 from codenames_parser.board.ocr import fetch_tesseract_language
 from codenames_parser.board.template_search import pyramid_image_search
-from codenames_parser.common.align import align_image, apply_rotations
 from codenames_parser.common.debug_util import (
     SEPARATOR,
     draw_boxes,
@@ -15,7 +14,6 @@ from codenames_parser.common.debug_util import (
 from codenames_parser.common.grid_detection import crop_cells, deduplicate_boxes
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box, LetterBox
-from codenames_parser.common.scale import scale_down_image
 from codenames_parser.resources.resource_manager import get_card_template_path
 
 log = logging.getLogger(__name__)
@@ -40,14 +38,14 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 
 
 def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
+    save_debug_image(image, title="original card")
     actual_card = pyramid_image_search(source_image=image, template_image=card_template)
-    save_debug_image(actual_card, title="actual card")
-    scale_result = scale_down_image(image, max_dimension=250)
-    alignment_result = align_image(scale_result.image)
-    image_aligned = apply_rotations(image=image, rotations=alignment_result.rotations)
+    # scale_result = scale_down_image(image, max_dimension=250)
+    # alignment_result = align_image(scale_result.image)
+    # image_aligned = apply_rotations(image=image, rotations=alignment_result.rotations)
     # boxes = pytesseract.image_to_boxes(image_aligned, lang=language)
     # color_distance = color_distance_mask(alignment_result.aligned_image, color=WHITE, percentile=80)
-    text = _extract_text(image_aligned, language=language)
+    text = _extract_text(actual_card, language=language)
     return text
 
 
@@ -179,14 +177,20 @@ def _mirror_around_horizontal_center(image: np.ndarray, boxes: list[LetterBox]) 
 
 
 def _pick_word_from_raw_text(raw_text: str) -> str:
-    log.info(f"Extracted text: [{raw_text}]")
     words = raw_text.split()
-    if not words:
+    log.info(f"Extracted words: {words}")
+    alphabet_words = [_keep_only_letters(word) for word in words]
+    length_sorted = sorted(alphabet_words, key=len, reverse=True)
+    if not length_sorted:
         log.warning("No words extracted")
         return ""
-    longest_word = str(max(words, key=len))
+    longest_word = length_sorted[0]
     log.info(f"Longest word: [{longest_word}]")
     return longest_word
+
+
+def _keep_only_letters(text: str) -> str:
+    return "".join(filter(str.isalpha, text))  # type: ignore
 
 
 def _find_word(word_cells: list[np.ndarray], language: str) -> str:
