@@ -4,7 +4,7 @@ import numpy as np
 import pytesseract
 
 from codenames_parser.board.ocr import fetch_tesseract_language
-from codenames_parser.board.template_search import pyramid_image_search
+from codenames_parser.board.template_search import search_template
 from codenames_parser.common.debug_util import (
     SEPARATOR,
     draw_boxes,
@@ -39,7 +39,7 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 
 def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
-    actual_card = pyramid_image_search(source_image=image, template_image=card_template)
+    actual_card = search_template(source_image=image, template_image=card_template)
     # card_equalized = cv2.equalizeHist(actual_card)
     # save_debug_image(card_equalized, title="equalized card")
     # alignment_result = align_image(image=card_equalized)
