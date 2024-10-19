@@ -5,6 +5,7 @@ import pytesseract
 
 from codenames_parser.board.ocr import fetch_tesseract_language
 from codenames_parser.board.template_search import search_template
+from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.debug_util import (
     SEPARATOR,
     draw_boxes,
@@ -40,11 +41,25 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
     actual_card = search_template(source_image=image, template_image=card_template)
-    # card_equalized = cv2.equalizeHist(actual_card)
-    # save_debug_image(card_equalized, title="equalized card")
-    # alignment_result = align_image(image=card_equalized)
-    text = _extract_text(actual_card, language=language)
+    text_section = _text_section_crop(actual_card)
+    text = _extract_text(text_section, language=language)
     return text
+
+
+def _text_section_crop(card: np.ndarray) -> np.ndarray:
+    # Example:
+    # size = 500x324
+    # top_left = (50, 190)
+    # w, h = (400, 90)
+    width, height = card.shape[1], card.shape[0]
+    text_x = int(width * 0.1)
+    text_y = int(height * 0.6)
+    text_width = int(width * 0.8)
+    text_height = int(height * 0.3)
+    box = Box(x=text_x, y=text_y, w=text_width, h=text_height)
+    text_section = crop_by_box(card, box=box)
+    save_debug_image(text_section, title="text section")
+    return text_section
 
 
 def _extract_text(card: np.ndarray, language: str) -> str:

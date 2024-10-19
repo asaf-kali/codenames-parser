@@ -25,4 +25,4 @@ def test_parse_board(fixture_file: str, language: str, expected_words: list[str]
     actual_grid = Grid.from_list(row_size=GRID_WIDTH, items=words)
     diff = expected_grid.diff(other=actual_grid)
     print_diff(diff)
-    assert len(diff) < 10
+    assert len(diff) < 5
