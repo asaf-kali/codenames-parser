@@ -173,8 +173,7 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     peak_point = Point(peak_coords[0], peak_coords[1])
     grade = _grade_match(match_result, peak_point=peak_point, template_size=template.shape[:2])
     result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
-    point = Point(peak_coords[0], peak_coords[1])
-    return MatchResult(template=template, location=point, grade=grade, result_image=result_image)
+    return MatchResult(template=template, location=peak_point, grade=grade, result_image=result_image)
 
 
 def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tuple[int, int]) -> float:
@@ -188,39 +187,56 @@ def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tup
     Returns:
         float: PSR value.
     """
+    psr = _calculate_psr(match_result, peak_point, template_size)
+    # fft = _calculate_fft(match_result)
+    area_factor = _calculate_area_factor(template_size)
+    grade = psr * area_factor
+    return float(grade)
+
+
+def _calculate_fft(match_result: np.ndarray) -> np.ndarray:
+    fft_result = np.fft.fft2(match_result)
+    fft_shifted = np.fft.fftshift(fft_result)
+    fft_abs = np.log(np.abs(fft_shifted) + 1)
+    fft_image = cv2.normalize(fft_abs, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
+    save_debug_image(fft_image, title="fft")
+    return fft_abs
+
+
+def _calculate_area_factor(template_size: tuple[int, int]) -> float:
+    template_area = template_size[0] * template_size[1]
+    area_log = np.log(template_area)
+    area_factor = 1 / (1 + area_log)
+    return area_factor
+
+
+def _calculate_psr(match_result: np.ndarray, peak_point: Point, template_size: tuple[int, int]) -> float:
     if peak_point == (0, 0):
         return -np.inf
-
     peak_value = match_result[peak_point[1], peak_point[0]]
-
     # Exclude a region around the peak proportional to the template size
     mask = np.ones_like(match_result, dtype=bool)
     h, w = match_result.shape
     peak_x, peak_y = peak_point
     template_h, template_w = template_size
-
     # Define exclude size, ensuring a minimum size to avoid small masks
     min_exclude_size = 5
     exclude_size_x = max(min_exclude_size, int(template_w * 0.2))
     exclude_size_y = max(min_exclude_size, int(template_h * 0.2))
-
     x_start = max(0, peak_x - exclude_size_x)
     x_end = min(w, peak_x + exclude_size_x + 1)
     y_start = max(0, peak_y - exclude_size_y)
     y_end = min(h, peak_y + exclude_size_y + 1)
     mask[y_start:y_end, x_start:x_end] = False
-
     # Calculate sidelobe statistics
     sidelobe = match_result[mask]
     if sidelobe.size == 0:
         return -np.inf
     mean_sidelobe = np.mean(sidelobe)
     std_sidelobe = np.std(sidelobe)
-
     # Avoid division by zero and invalid PSR
     if std_sidelobe == 0:
         return -np.inf
-
     psr = (peak_value - mean_sidelobe) / std_sidelobe
     return float(psr)
 
