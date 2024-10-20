@@ -84,12 +84,12 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
                     continue
                 # Transform template
                 template_transformed = _transform_template(template_gray, angle, scale, factor=factor)
-                # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
+                save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
                 if has_larger_dimension(template_transformed, source_downsample):
                     continue
                 # Perform template matching
                 match_result = _match_template(source=source_downsample, template=template_transformed)
-                # save_debug_image(match_result.result_image, title=f"match result {match_result.grade:.3f}")
+                save_debug_image(match_result.result_image, title=f"match result {match_result.grade:.3f}")
                 # Update best match if necessary
                 if match_result.grade > iteration_search_result.match.grade:
                     iteration_search_result = SearchResult(angle=angle, scale=scale, match=match_result)
@@ -189,13 +189,17 @@ def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tup
     """
     psr = _calculate_psr(match_result, peak_point, template_size)
     # fft = _calculate_fft(match_result)
+    # _, fft_max_val, _, fft_max_coords = cv2.minMaxLoc(match_result)
+    # fft_peak_point = Point(fft_max_coords[0], fft_max_coords[1])
+    # psr = _calculate_psr(fft, peak_point=fft_peak_point, template_size=fft.shape[:2])
     area_factor = _calculate_area_factor(template_size)
     grade = psr * area_factor
     return float(grade)
 
 
-def _calculate_fft(match_result: np.ndarray) -> np.ndarray:
-    fft_result = np.fft.fft2(match_result)
+def _calculate_fft(values: np.ndarray) -> np.ndarray:
+    grayscale = ensure_grayscale(values)
+    fft_result = np.fft.fft2(grayscale)
     fft_shifted = np.fft.fftshift(fft_result)
     fft_abs = np.log(np.abs(fft_shifted) + 1)
     fft_image = cv2.normalize(fft_abs, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]

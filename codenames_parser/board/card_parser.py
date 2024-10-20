@@ -34,6 +34,7 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 
 def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
+    # fft = _calculate_fft(image)
     actual_card = search_template(source_image=image, template_image=card_template)
     text_section = _text_section_crop(actual_card)
     text = _extract_text(text_section, language=language)
