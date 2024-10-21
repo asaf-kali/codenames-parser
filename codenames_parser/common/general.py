@@ -12,18 +12,23 @@ def ensure_grayscale(image: np.ndarray) -> np.ndarray:
     return image
 
 
-def zero_pad(image: np.ndarray, padding: int) -> np.ndarray:
-    """Pad the image with zeros on all sides.
+def value_pad(image: np.ndarray, padding: int, value: int) -> np.ndarray:
+    """Pad the image with a constant value on all sides.
 
     Args:
         image (np.ndarray): Input image.
         padding (int): Padding size.
+        value (int): Padding value.
 
     Returns:
         np.ndarray: Padded image.
     """
     p = padding
-    return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_CONSTANT, value=0)  # type: ignore
+    return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_CONSTANT, value=value)  # type: ignore
+
+
+def zero_pad(image: np.ndarray, padding: int) -> np.ndarray:
+    return value_pad(image, padding, value=0)
 
 
 def border_pad(image: np.ndarray, padding: int) -> np.ndarray:
@@ -38,3 +43,7 @@ def border_pad(image: np.ndarray, padding: int) -> np.ndarray:
     """
     p = padding
     return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_REPLICATE)
+
+
+def grayscale_normalize(image: np.ndarray) -> np.ndarray:
+    return cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]

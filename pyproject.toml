@@ -28,6 +28,7 @@ pytesseract = "^0.3.13"
 # Util
 requests = "^2.32.3"
 platformdirs = "^4.3.6"
+matplotlib = "^3.9.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"

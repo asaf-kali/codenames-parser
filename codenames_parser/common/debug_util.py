@@ -49,11 +49,7 @@ def set_debug_context(context: str) -> None:
 def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
     if not _is_debug_enabled():
         return
-    run_folder = _get_run_folder()
-    os.makedirs(run_folder, exist_ok=True)
-    RUN_COUNT.add()
-    file_name = f"{RUN_COUNT:03d}: {title}.jpg"
-    file_path = os.path.join(run_folder, file_name)
+    file_path = get_debug_file_path(title)
     try:
         cv2.imwrite(file_path, image)
         if show:
@@ -61,6 +57,28 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
     except Exception as e:
         log.debug(f"Error saving debug image: {e}")
         return
+
+
+def save_plt_image(plt, title: str, show: bool = False) -> None:
+    if not _is_debug_enabled():
+        return
+    file_path = get_debug_file_path(title)
+    try:
+        plt.savefig(file_path)
+        if show:
+            plt.show()
+    except Exception as e:
+        log.debug(f"Error saving debug image: {e}")
+        return
+
+
+def get_debug_file_path(title: str) -> str:
+    run_folder = _get_run_folder()
+    os.makedirs(run_folder, exist_ok=True)
+    RUN_COUNT.add()
+    file_name = f"{RUN_COUNT:03d}: {title}.jpg"
+    file_path = os.path.join(run_folder, file_name)
+    return file_path
 
 
 def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2):
