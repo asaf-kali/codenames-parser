@@ -29,6 +29,7 @@ pytesseract = "^0.3.13"
 requests = "^2.32.3"
 platformdirs = "^4.3.6"
 matplotlib = "^3.9.2"
+tqdm = "^4.66.5"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2"
