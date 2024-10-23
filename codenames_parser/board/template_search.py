@@ -5,8 +5,13 @@ import cv2
 import numpy as np
 
 from codenames_parser.common.align import apply_rotation
-from codenames_parser.common.debug_util import draw_polyline, save_debug_image
-from codenames_parser.common.general import ensure_grayscale, has_larger_dimension
+from codenames_parser.common.crop import rotated_crop
+from codenames_parser.common.debug_util import save_debug_image
+from codenames_parser.common.general import (
+    ensure_grayscale,
+    grayscale_normalize,
+    has_larger_dimension,
+)
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
 
@@ -16,18 +21,18 @@ log = logging.getLogger(__name__)
 @dataclass
 class MatchResult:
     template: np.ndarray
-    result_image: np.ndarray
+    convo: np.ndarray
+    convo_normalized: np.ndarray
     location: Point
-    grade: float
+    score: float
 
-    @classmethod
-    def empty(cls):
-        return cls(
-            template=np.zeros((1, 1), dtype=np.uint8),
-            result_image=np.zeros((1, 1), dtype=np.uint8),
-            location=Point(0, 0),
-            grade=-np.inf,
-        )
+    @property
+    def min_value(self):
+        return np.min(self.convo)
+
+    @property
+    def max_value(self):
+        return np.max(self.convo)
 
 
 @dataclass
@@ -36,9 +41,12 @@ class SearchResult:
     scale: float
     match: MatchResult
 
-    @classmethod
-    def empty(cls):
-        return cls(angle=0.0, scale=0.0, match=MatchResult.empty())
+    @property
+    def name(self):
+        return f"{self.angle:.2f}°, X{self.scale:.2f}"
+
+    def __str__(self) -> str:
+        return f"{self.name} score={self.match.score:.3f}"
 
 
 def search_template(source_image: np.ndarray, template_image: np.ndarray, num_iterations: int = 1) -> np.ndarray:
@@ -64,40 +72,46 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     scale_step_num = 3
     iter_angles = np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1)
     iter_scales = np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1)
-    # Initial best values
-    search_result = SearchResult.empty()
 
+    search_result = None
     # Iterate
     for i in range(1, num_iterations + 1):
         # Downsample factor
         factor = 2 ** (num_iterations - i)
         log.info(f"Iteration {i}: downsample factor={factor}")
-        source_gray = apply_rotation(image=source_gray, angle_degrees=-search_result.angle)
+        angle_degrees = _get_rotation_angle(search_result)
+        source_gray = apply_rotation(image=source_gray, angle_degrees=angle_degrees)
         source_downsample = downsample_image(source_gray, factor=factor)
         save_debug_image(source_downsample, title=f"source downsample {i}")
 
-        iteration_search_result = SearchResult.empty()
         # For each angle and scale
+        iteration_results = []
         for angle in iter_angles:
             for scale in iter_scales:
                 if scale > max_scale:
+                    log.debug(f"Skipping scale {scale:.2f}")
                     continue
                 # Transform template
                 template_transformed = _transform_template(template_gray, angle, scale, factor=factor)
-                save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
                 if has_larger_dimension(template_transformed, source_downsample):
+                    log.debug(f"Skipping template {template_transformed.shape} larger than source")
                     continue
+                # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
                 # Perform template matching
                 match_result = _match_template(source=source_downsample, template=template_transformed)
-                save_debug_image(match_result.result_image, title=f"match result {match_result.grade:.3f}")
-                # Update best match if necessary
-                if match_result.grade > iteration_search_result.match.grade:
-                    iteration_search_result = SearchResult(angle=angle, scale=scale, match=match_result)
+                log.debug(f"angle={angle:<6.2f} scale={scale:<6.2f} score={match_result.score:<6.3f}")
+                # save_debug_image(match_result.result_normalized, title=f"match result {match_result.grade:.3f}")
+                iteration_result = SearchResult(angle=round(angle, 3), scale=round(scale, 3), match=match_result)
+                iteration_results.append(iteration_result)
 
-        _log_iteration(i, result=iteration_search_result)
-        search_result = iteration_search_result
-
-    matched_image = _crop_best_result(
+        # Find the best result
+        best_iteration_result = _pick_best_result(iteration_results)
+        # _log_iteration(i, result=best_iteration_result)
+        search_result = best_iteration_result
+        # _plot_results(iteration_results)
+    if search_result is None:
+        raise ValueError("No match found")
+    matched_image = rotated_crop(
         source_gray,
         angle=search_result.angle,
         top_left=search_result.match.location,
@@ -106,18 +120,70 @@ def search_template(source_image: np.ndarray, template_image: np.ndarray, num_it
     return matched_image
 
 
+def _pick_best_result(iteration_results: list[SearchResult]) -> SearchResult:
+    results_ordered = sorted(iteration_results, key=lambda x: x.match.score, reverse=True)
+    log.info("Top 5 results:")
+    for j in range(5):
+        result = results_ordered[j]
+        log.info(str(result))
+        save_debug_image(result.match.template, title=f"template {j} ({result.name})")
+        save_debug_image(result.match.convo_normalized, title=f"match {j} ({result.name})")
+    best_iteration_result = results_ordered[0]
+    return best_iteration_result
+
+
+def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
+    log.debug(f"Matching template {template.shape} in source {source.shape}")
+    match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
+    result_normalized = grayscale_normalize(match_result)
+    _, _, _, peak_coords = cv2.minMaxLoc(match_result)
+    peak_point = Point(peak_coords[0], peak_coords[1])
+    if np.multiply(*match_result.shape) < 50:
+        score = 0.0
+    else:
+        score = _grade_match(match_result, result_normalized, peak_point, template.shape[:2])
+    return MatchResult(
+        template=template,
+        convo=match_result,
+        convo_normalized=result_normalized,
+        location=peak_point,
+        score=score,
+    )
+
+
+def _grade_match(
+    match_result: np.ndarray, result_normalized: np.ndarray, peak_point: Point, template_size: tuple[int, int]
+) -> float:
+    p = float(np.percentile(result_normalized, q=75))
+    p_normal = 1 - p / 255  # Higher is better
+    psr = _calculate_psr(match_result, peak_point)  # Higher is better
+    area_factor = _calculate_area_factor(template_size)
+    score = 300 * p_normal + 2 * psr * area_factor
+    log.debug(f"p_normal={p_normal:<5.3f} psr={psr:<5.3f} area_factor={area_factor:<5.3f} score={score:<5.3f}")
+    return score
+
+
+def _calculate_area_factor(template_size: tuple[int, int]) -> float:
+    template_area = np.multiply(*template_size)
+    area_log = np.log(template_area)
+    # area_factor = 1 / (1 + area_log)
+    return area_log
+
+
+def _calculate_psr(match_result: np.ndarray, peak_point: Point) -> float:
+    peak_value = match_result[peak_point[1], peak_point[0]]
+    # Calculate the mean value of the sidelobe
+    sidelobe = np.copy(match_result)
+    sidelobe[peak_point[1], peak_point[0]] = 0
+    mean_sidelobe = np.mean(sidelobe)
+    # Calculate the standard deviation of the sidelobe
+    std_sidelobe = np.std(sidelobe)
+    # Calculate the peak-to-sidelobe
+    psr = (peak_value - mean_sidelobe) / std_sidelobe
+    return float(psr)
+
+
 def _transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
-    """Rotate and scale the template image, including downsampling factor, with minimal padding to prevent pixel loss.
-
-    Args:
-        template (np.ndarray): Template image.
-        angle (float): Rotation angle in degrees.
-        scale (float): Scaling factor.
-        factor (int): Downsampling factor.
-
-    Returns:
-        np.ndarray: Transformed template image.
-    """
     # Compute the overall scaling factor
     overall_scale = scale / factor
 
@@ -158,154 +224,29 @@ def _transform_template(template: np.ndarray, angle: float, scale: float, factor
     return rotated_template
 
 
-def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
-    """Perform template matching using normalized cross-correlation.
-
-    Args:
-        source (np.ndarray): Source image.
-        template (np.ndarray): Template image.
-
-    Returns:
-        np.ndarray: Matching result.
-    """
-    match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
-    _, _, _, peak_coords = cv2.minMaxLoc(match_result)
-    peak_point = Point(peak_coords[0], peak_coords[1])
-    grade = _grade_match(match_result, peak_point=peak_point, template_size=template.shape[:2])
-    result_image = cv2.normalize(match_result, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
-    return MatchResult(template=template, location=peak_point, grade=grade, result_image=result_image)
-
-
-def _grade_match(match_result: np.ndarray, peak_point: Point, template_size: tuple[int, int]) -> float:
-    """Compute the Peak-to-Sidelobe Ratio (PSR) with improved exclude region size.
-
-    Args:
-        match_result (np.ndarray): Result from template matching.
-        peak_point (Point): Coordinates of the peak correlation value.
-        template_size (Tuple[int, int]): Size of the template (height, width).
-
-    Returns:
-        float: PSR value.
-    """
-    psr = _calculate_psr(match_result, peak_point, template_size)
-    # fft = _calculate_fft(match_result)
-    # _, fft_max_val, _, fft_max_coords = cv2.minMaxLoc(match_result)
-    # fft_peak_point = Point(fft_max_coords[0], fft_max_coords[1])
-    # psr = _calculate_psr(fft, peak_point=fft_peak_point, template_size=fft.shape[:2])
-    area_factor = _calculate_area_factor(template_size)
-    grade = psr * area_factor
-    return float(grade)
-
-
-def _calculate_fft(values: np.ndarray) -> np.ndarray:
-    grayscale = ensure_grayscale(values)
-    fft_result = np.fft.fft2(grayscale)
-    fft_shifted = np.fft.fftshift(fft_result)
-    fft_abs = np.log(np.abs(fft_shifted) + 1)
-    fft_image = cv2.normalize(fft_abs, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
-    save_debug_image(fft_image, title="fft")
-    return fft_abs
-
-
-def _calculate_area_factor(template_size: tuple[int, int]) -> float:
-    template_area = template_size[0] * template_size[1]
-    area_log = np.log(template_area)
-    area_factor = 1 / (1 + area_log)
-    return area_factor
-
-
-def _calculate_psr(match_result: np.ndarray, peak_point: Point, template_size: tuple[int, int]) -> float:
-    if peak_point == (0, 0):
-        return -np.inf
-    peak_value = match_result[peak_point[1], peak_point[0]]
-    # Exclude a region around the peak proportional to the template size
-    mask = np.ones_like(match_result, dtype=bool)
-    h, w = match_result.shape
-    peak_x, peak_y = peak_point
-    template_h, template_w = template_size
-    # Define exclude size, ensuring a minimum size to avoid small masks
-    min_exclude_size = 5
-    exclude_size_x = max(min_exclude_size, int(template_w * 0.2))
-    exclude_size_y = max(min_exclude_size, int(template_h * 0.2))
-    x_start = max(0, peak_x - exclude_size_x)
-    x_end = min(w, peak_x + exclude_size_x + 1)
-    y_start = max(0, peak_y - exclude_size_y)
-    y_end = min(h, peak_y + exclude_size_y + 1)
-    mask[y_start:y_end, x_start:x_end] = False
-    # Calculate sidelobe statistics
-    sidelobe = match_result[mask]
-    if sidelobe.size == 0:
-        return -np.inf
-    mean_sidelobe = np.mean(sidelobe)
-    std_sidelobe = np.std(sidelobe)
-    # Avoid division by zero and invalid PSR
-    if std_sidelobe == 0:
-        return -np.inf
-    psr = (peak_value - mean_sidelobe) / std_sidelobe
-    return float(psr)
-
-
-def _crop_best_result(image: np.ndarray, angle: float, top_left: Point, size: tuple[int, int]) -> np.ndarray:
-    """Crop the matched region from the source image, taking rotation into account.
-
-    Args:
-        image (np.ndarray): Original source image.
-        angle (float): Best rotation angle found.
-        top_left (tuple[int, int]): Top-left corner location of the match in the source image.
-        size (tuple[int, int]): Size of the matched region (height, width).
-
-    Returns:
-        np.ndarray: Cropped and straightened matched region from the source image.
-    """
-    # Get the size of the rotated template
-    height, width = size
-    vrt_center, hrz_center = height / 2, width / 2
-    top_left_x, top_left_y = top_left
-    # Define the corners of the template relative to its center
-    corners = np.array(
-        [
-            [-hrz_center, -vrt_center],
-            [hrz_center, -vrt_center],
-            [hrz_center, vrt_center],
-            [-hrz_center, vrt_center],
-        ]
-    )
-    # Rotation matrix
-    angle_rad = np.deg2rad(-angle)
-    rotation_matrix = np.array(
-        [
-            [np.cos(angle_rad), -np.sin(angle_rad)],
-            [np.sin(angle_rad), np.cos(angle_rad)],
-        ]
-    )
-    rotated_corners = np.dot(corners, rotation_matrix.T)
-    matched_corners = rotated_corners + np.array([top_left_x + hrz_center, top_left_y + vrt_center])
-    dst_points = np.array(
-        [
-            [0, 0],
-            [width - 1, 0],
-            [width - 1, height - 1],
-            [0, height - 1],
-        ],
-        dtype=np.float32,
-    )
-    # Source points are the matched corners
-    src_points = matched_corners.astype(np.float32)
-
-    # Compute the perspective transform matrix
-    perspective_t = cv2.getPerspectiveTransform(src_points, dst_points)
-
-    # For debugging, draw the matched region on the source image
-    draw_polyline(image, points=src_points, title="matched region")
-
-    # Apply the perspective transform to get the straightened image
-    cropped_image = cv2.warpPerspective(image, M=perspective_t, dsize=(width, height))
-    save_debug_image(cropped_image, title="cropped region")
-    return cropped_image
+def _get_rotation_angle(search_result: SearchResult | None) -> float:
+    if search_result is None:
+        return 0
+    return -search_result.angle
 
 
 def _log_iteration(i: int, result: SearchResult):
     match = result.match
     save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
-    save_debug_image(match.result_image, title=f"best match {i} ({match.grade:.3f})")
-    log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} value={match.grade:<6.3f}")
+    save_debug_image(match.convo_normalized, title=f"best match {i} ({match.max_value:.3f})")
+    log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} score={match.score:<6.3f}")
+
+# def _plot_results(results: list[SearchResult]):
+#     plt.figure()
+#     # plt.xlim(0, 100)
+#     # plt.ylim(0, 20)
+#     plt.xlabel("P factor")
+#     plt.ylabel("PSR")
+#     # Give each point a label
+#     # for result in results:
+#     # grade = result.match.score
+#     # x, y = grade
+#     # plt.text(x, y, result.name)
+#     # plt.scatter(x, y)
+#     plt.legend()
+#     plt.show()

@@ -1,6 +1,7 @@
 import logging
 from typing import NamedTuple
 
+import cv2
 import numpy as np
 
 from codenames_parser.common.align import (
@@ -9,8 +10,13 @@ from codenames_parser.common.align import (
     extract_lines,
     get_grid_lines,
 )
-from codenames_parser.common.debug_util import SEPARATOR, draw_lines, save_debug_image
-from codenames_parser.common.models import Box, Line
+from codenames_parser.common.debug_util import (
+    SEPARATOR,
+    draw_lines,
+    draw_polyline,
+    save_debug_image,
+)
+from codenames_parser.common.models import Box, Line, Point
 
 log = logging.getLogger(__name__)
 
@@ -97,3 +103,60 @@ def find_crop_bounds(lines: list[Line]) -> AxisBounds:
     start = lines[0]
     end = lines[-1]
     return AxisBounds(start=start, end=end)
+
+
+def rotated_crop(image: np.ndarray, angle: float, top_left: Point, size: tuple[int, int]) -> np.ndarray:
+    """
+    Crop a region from the image, taking rotation into account.
+
+    Args:
+        image (np.ndarray): Original source image.
+        angle (float): Rotation angle of the region.
+        top_left (Point): Top-left corner location of the region.
+        size (tuple[int, int]): Size of the region (height, width).
+
+    Returns:
+        np.ndarray: Cropped and straightened matched region from the source image.
+    """
+    # Get the size of the rotated template
+    height, width = size
+    vrt_center, hrz_center = height / 2, width / 2
+    top_left_x, top_left_y = top_left
+    # Define the corners of the template relative to its center
+    corners = np.array(
+        [
+            [-hrz_center, -vrt_center],
+            [hrz_center, -vrt_center],
+            [hrz_center, vrt_center],
+            [-hrz_center, vrt_center],
+        ]
+    )
+    # Rotation matrix
+    angle_rad = np.deg2rad(-angle)
+    rotation_matrix = np.array(
+        [
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad), np.cos(angle_rad)],
+        ]
+    )
+    rotated_corners = np.dot(corners, rotation_matrix.T)
+    matched_corners = rotated_corners + np.array([top_left_x + hrz_center, top_left_y + vrt_center])
+    dst_points = np.array(
+        [
+            [0, 0],
+            [width - 1, 0],
+            [width - 1, height - 1],
+            [0, height - 1],
+        ],
+        dtype=np.float32,
+    )
+    # Source points are the matched corners
+    src_points = matched_corners.astype(np.float32)
+    draw_polyline(image, points=src_points, title="matched region")
+
+    # Compute the perspective transform matrix
+    perspective_t = cv2.getPerspectiveTransform(src_points, dst_points)
+    # Apply the perspective transform to get the straightened image
+    cropped_image = cv2.warpPerspective(image, M=perspective_t, dsize=(width, height))
+    save_debug_image(cropped_image, title="cropped region")
+    return cropped_image

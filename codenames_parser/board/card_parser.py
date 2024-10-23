@@ -1,7 +1,9 @@
 import logging
+import sys
 
 import numpy as np
 import pytesseract
+from tqdm import tqdm
 
 from codenames_parser.board.ocr import fetch_tesseract_language
 from codenames_parser.board.template_search import search_template
@@ -23,7 +25,7 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
     cards = []
     card_template = read_image(get_card_template_path())
     card_template_gray = ensure_grayscale(card_template)
-    for i, cell in enumerate(cells):
+    for i, cell in tqdm(enumerate(cells), desc="Parsing cards", file=sys.stdout):
         set_debug_context(f"card {i}")
         log.info(SEPARATOR)
         log.info(f"Processing card {i}")
