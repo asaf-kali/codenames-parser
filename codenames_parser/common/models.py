@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, Iterable, Iterator, NamedTuple, Sequence, TypeVar
+from typing import Iterable, Iterator, NamedTuple, Sequence, TypeVar
 
 import numpy as np
 
@@ -119,72 +119,3 @@ class Color(NamedTuple):
 
     def __str__(self) -> str:
         return f"({self.r},{self.g},{self.b})"
-
-
-class CellDiff(NamedTuple):
-    row: int
-    col: int
-    value_self: T  # type: ignore[valid-type]
-    value_other: T  # type: ignore[valid-type]
-
-
-class Grid(Generic[T]):
-    def __init__(self, row_size: int):
-        self.row_size = row_size
-        self._rows: list[list[T]] = []
-
-    @staticmethod
-    def from_list(row_size: int, items: list[T]) -> "Grid[T]":
-        grid: Grid[T] = Grid(row_size)
-        for i in range(0, len(items), row_size):
-            row = items[i : i + row_size]
-            grid.append(row)
-        return grid
-
-    @staticmethod
-    def from_rows(rows: list[list[T]]) -> "Grid[T]":
-        if len(rows) == 0:
-            raise ValueError("Rows cannot be empty")
-        row_size = len(rows[0])
-        grid: Grid[T] = Grid(row_size)
-        for row in rows:
-            grid.append(row)
-        return grid
-
-    @property
-    def rows(self) -> list[list[T]]:
-        return self._rows
-
-    def append(self, row: list[T]) -> None:
-        if len(row) != self.row_size:
-            raise ValueError(f"Row size must be {self.row_size}")
-        self._rows.append(row)
-
-    def __iter__(self) -> Iterator[T]:
-        for row in self._rows:
-            yield from row
-
-    def __getitem__(self, index: int) -> list[T]:
-        return self._rows[index]
-
-    def __len__(self) -> int:
-        return len(self._rows) * self.row_size
-
-    def __eq__(self, other):
-        if not isinstance(other, Grid):
-            return False
-        if self.row_size != other.row_size:
-            return False
-        if len(self._rows) != len(other):
-            return False
-        diff = self.diff(other)
-        return not diff
-
-    def diff(self, other: "Grid[T]") -> list[CellDiff]:
-        diff = []
-        for i in range(len(self._rows)):
-            for j in range(self.row_size):
-                if self[i][j] != other[i][j]:
-                    cell_diff = CellDiff(i, j, self[i][j], other[i][j])
-                    diff.append(cell_diff)
-        return diff
