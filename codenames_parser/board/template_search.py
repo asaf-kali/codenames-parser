@@ -10,9 +10,12 @@ from codenames_parser.common.debug_util import save_debug_image
 from codenames_parser.common.general import border_pad, has_larger_dimension, normalize
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
+from codenames_parser.common.transform import transform
 
 log = logging.getLogger(__name__)
 
+ANGLE_STEP_NUM = 5
+SCALE_STEM_NUM = 3
 ITERATION_ANGLE_DIFF = 2.0
 ITERATION_SCALE_DIFF = 0.3
 
@@ -65,53 +68,31 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
     max_possible_scale = round(1.0 / scale_ratio, 4)
     min_angle, max_angle = (-10.0, 10.0)
     min_scale, max_scale = 0.1, max_possible_scale
-    angle_step_num = 5
-    scale_step_num = 3
 
     search_result = None
     # Iterate
     for i in range(1, num_iterations + 1):
         # Iteration parameters
-        iter_angles = _rounded_list(np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1))
-        iter_scales = _rounded_list(np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1))
+        iter_angles = _rounded_list(np.linspace(min_angle, max_angle, num=ANGLE_STEP_NUM * 2 + 1))
+        iter_scales = _rounded_list(np.linspace(min_scale, max_scale, num=SCALE_STEM_NUM * 2 + 1))
         factor = 2 ** (num_iterations - i)
-        # Debug
         _log_iteration_search_params(i, factor, iter_angles, iter_scales)
-        # Downsample
+        # Adjust the source image
         angle_degrees = _get_rotation_angle(search_result)
         source = apply_rotation(image=source, angle_degrees=angle_degrees)
-        source_downsample = downsample_image(source, factor=factor)
-        save_debug_image(source_downsample, title=f"source downsample {i}")
-
-        # For each angle and scale
-        iteration_results = []
-        for angle in iter_angles:
-            for scale in iter_scales:
-                if scale > max_scale:
-                    log.debug(f"Skipping scale {scale:.2f}")
-                    continue
-                # Transform template
-                template_transformed = _transform_template(template, angle, scale, factor=factor)
-                if has_larger_dimension(template_transformed, source_downsample):
-                    log.debug(f"Skipping template {template_transformed.shape} larger than source")
-                    continue
-                # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
-                # Perform template matching
-                match_result = _match_template(source=source_downsample, template=template_transformed)
-                log.debug(f"angle={angle:<6.2f} scale={scale:<6.2f} score={match_result.score:<6.3f}")
-                # save_debug_image(match_result.result_normalized, title=f"match result {match_result.grade:.3f}")
-                iteration_result = SearchResult(angle=round(angle, 3), scale=round(scale, 3), match=match_result)
-                iteration_results.append(iteration_result)
-
+        # Run iteration search
+        iteration_results = _template_search_iteration(
+            i=i, source=source, template=template, factor=factor, angles=iter_angles, scales=iter_scales
+        )
         # Find the best result
         best_iteration_result = _pick_best_result(iteration_results)
         _log_iteration_result(i, result=best_iteration_result)
         search_result = best_iteration_result
-        # _plot_results(iteration_results)
+        # Narrow the search range
         min_angle, max_angle = min_angle / 2, max_angle / 2
         min_scale, max_scale = search_result.scale - ITERATION_SCALE_DIFF, search_result.scale + ITERATION_SCALE_DIFF
         max_scale = min(max_scale, max_possible_scale)
-    # Final result
+    # Final search result
     if search_result is None:
         raise ValueError("No match found")
     matched_image = rotated_crop(
@@ -122,6 +103,30 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
     )
     log.debug(f"Final matching result: {search_result}")
     return matched_image
+
+
+def _template_search_iteration(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    i: int, source: np.ndarray, template: np.ndarray, factor: int, angles: list[float], scales: list[float]
+) -> list[SearchResult]:
+    source_downsample = downsample_image(source, factor=factor)
+    save_debug_image(source_downsample, title=f"source downsample {i}")
+    # For each angle and scale
+    iteration_results = []
+    for angle in angles:
+        for scale in scales:
+            # Transform template
+            template_transformed = transform(image=template, scale=scale / factor, angle=angle)
+            if has_larger_dimension(template_transformed, source_downsample):
+                log.debug(f"Skipping template {template_transformed.shape} larger than source")
+                continue
+            # save_debug_image(template_transformed, title=f"template transformed {i} ({angle:.2f}°, X{scale:.2f})")
+            # Perform template matching
+            match_result = _match_template(source=source_downsample, template=template_transformed)
+            log.debug(f"angle={angle:<6.2f} scale={scale:<6.2f} score={match_result.score:<6.3f}")
+            # save_debug_image(match_result.result_normalized, title=f"match result {match_result.grade:.3f}")
+            iteration_result = SearchResult(angle=round(angle, 3), scale=round(scale, 3), match=match_result)
+            iteration_results.append(iteration_result)
+    return iteration_results
 
 
 def _log_iteration_search_params(i: int, factor: int, iter_angles: list[float], iter_scales: list[float]) -> None:
@@ -197,47 +202,6 @@ def _calculate_psr(match_result: np.ndarray, peak_point: Point) -> float:
     return float(psr)
 
 
-def _transform_template(template: np.ndarray, angle: float, scale: float, factor: int) -> np.ndarray:
-    # Compute the overall scaling factor
-    overall_scale = scale / factor
-
-    # Resize the template
-    height, width = template.shape[:2]
-    new_width = int(width * overall_scale)
-    new_height = int(height * overall_scale)
-    resized_template = cv2.resize(template, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-
-    # Get the center of the image
-    center = (new_width / 2, new_height / 2)
-
-    # Compute the rotation matrix
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-
-    # Compute the sine and cosine of the rotation angle
-    abs_cos = abs(rotation_matrix[0, 0])
-    abs_sin = abs(rotation_matrix[0, 1])
-
-    # Compute the new bounding dimensions of the image
-    bound_w = int(new_height * abs_sin + new_width * abs_cos)
-    bound_h = int(new_height * abs_cos + new_width * abs_sin)
-
-    # Adjust the rotation matrix to account for translation
-    rotation_matrix[0, 2] += bound_w / 2 - center[0]
-    rotation_matrix[1, 2] += bound_h / 2 - center[1]
-
-    # Perform the rotation with the adjusted matrix
-    rotated_template = cv2.warpAffine(
-        resized_template,
-        rotation_matrix,
-        (bound_w, bound_h),
-        flags=cv2.INTER_LINEAR,
-        borderMode=cv2.BORDER_CONSTANT,
-        borderValue=(0, 0, 0),
-    )
-
-    return rotated_template
-
-
 def _get_rotation_angle(search_result: SearchResult | None) -> float:
     if search_result is None:
         return 0
@@ -253,19 +217,3 @@ def _log_iteration_result(i: int, result: SearchResult):
     save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
     save_debug_image(match.convo_normalized, title=f"best match {i} ({match.max_value:.3f})")
     log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} score={match.score:<6.3f}")
-
-
-# def _plot_results(results: list[SearchResult]):
-#     plt.figure()
-#     # plt.xlim(0, 100)
-#     # plt.ylim(0, 20)
-#     plt.xlabel("P factor")
-#     plt.ylabel("PSR")
-#     # Give each point a label
-#     # for result in results:
-#     # grade = result.match.score
-#     # x, y = grade
-#     # plt.text(x, y, result.name)
-#     # plt.scatter(x, y)
-#     plt.legend()
-#     plt.show()
