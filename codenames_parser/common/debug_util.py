@@ -121,6 +121,17 @@ def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str) -
     return save_debug_image(image, title=title)
 
 
+def draw_points(image: np.ndarray, points: Sequence[Point], title: str, radius: int = 3) -> str | None:
+    if not _is_debug_enabled():
+        return None
+    image = image.copy()
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    for point in points:
+        cv2.circle(image, point, radius, (0, 255, 0), -1)
+    return save_debug_image(image, title=title)
+
+
 def _get_run_folder() -> str:
     debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
     run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))

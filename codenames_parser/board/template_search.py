@@ -9,8 +9,8 @@ from codenames_parser.common.crop import rotated_crop
 from codenames_parser.common.debug_util import save_debug_image
 from codenames_parser.common.general import (
     ensure_grayscale,
-    grayscale_normalize,
     has_larger_dimension,
+    normalize,
 )
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
@@ -135,7 +135,7 @@ def _pick_best_result(iteration_results: list[SearchResult]) -> SearchResult:
 def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     log.debug(f"Matching template {template.shape} in source {source.shape}")
     match_result = cv2.matchTemplate(source, template, method=cv2.TM_CCOEFF_NORMED)
-    result_normalized = grayscale_normalize(match_result)
+    result_normalized = normalize(match_result)
     _, _, _, peak_coords = cv2.minMaxLoc(match_result)
     peak_point = Point(peak_coords[0], peak_coords[1])
     if np.multiply(*match_result.shape) < 50:
