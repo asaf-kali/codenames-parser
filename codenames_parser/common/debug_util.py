@@ -46,9 +46,9 @@ def set_debug_context(context: str) -> None:
     CONTEXT = context
 
 
-def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
+def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> str | None:
     if not _is_debug_enabled():
-        return
+        return None
     file_path = get_debug_file_path(title)
     try:
         cv2.imwrite(file_path, image)
@@ -56,12 +56,13 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> None:
             cv2.imshow(title, image)
     except Exception as e:
         log.debug(f"Error saving debug image: {e}")
-        return
+        return None
+    return file_path
 
 
-def save_plt_image(plt, title: str, show: bool = False) -> None:
+def save_plt_image(plt, title: str, show: bool = False) -> str | None:
     if not _is_debug_enabled():
-        return
+        return None
     file_path = get_debug_file_path(title)
     try:
         plt.savefig(file_path)
@@ -69,7 +70,8 @@ def save_plt_image(plt, title: str, show: bool = False) -> None:
             plt.show()
     except Exception as e:
         log.debug(f"Error saving debug image: {e}")
-        return
+        return None
+    return file_path
 
 
 def get_debug_file_path(title: str) -> str:
@@ -81,9 +83,9 @@ def get_debug_file_path(title: str) -> str:
     return file_path
 
 
-def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2):
+def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2) -> str | None:
     if not _is_debug_enabled():
-        return
+        return None
     image = image.copy()
     if len(image.shape) == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
@@ -91,12 +93,12 @@ def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: i
         top_left = (box.x, box.y)
         bottom_right = (box.x + box.w, box.y + box.h)
         cv2.rectangle(image, pt1=top_left, pt2=bottom_right, color=BOX_COLOR, thickness=thickness)
-    save_debug_image(image, title=title)
+    return save_debug_image(image, title=title)
 
 
-def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str):
+def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> str | None:
     if not _is_debug_enabled():
-        return
+        return None
     # If image is grayscale, convert to BGR
     image = image.copy()
     if len(image.shape) == 2:
@@ -105,19 +107,18 @@ def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str):
         loc = _get_line_draw_params(line)
         color = _pick_line_color(line)
         cv2.line(image, loc.p1, loc.p2, color, 2)
-    save_debug_image(image, title=title)
+    return save_debug_image(image, title=title)
 
 
-def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str):
+def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str) -> str | None:
     if not _is_debug_enabled():
-        return
+        return None
     image = image.copy()
     if len(image.shape) == 2:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     pts = [np.array(points, dtype=np.int32)]
     cv2.polylines(image, pts=pts, isClosed=True, color=(0, 255, 0), thickness=2)
-    save_debug_image(image, title=title)
-    return
+    return save_debug_image(image, title=title)
 
 
 def _get_run_folder() -> str:

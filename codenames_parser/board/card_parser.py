@@ -71,12 +71,14 @@ def _extract_text(card: np.ndarray, language: str) -> str:
 def _pick_word_from_raw_text(raw_text: str) -> str:
     words = raw_text.split()
     log.info(f"Extracted words: {words}")
-    alphabet_words = [_keep_only_letters(word) for word in words]
-    length_sorted = sorted(alphabet_words, key=len, reverse=True)
-    if not length_sorted:
+    words_alphabet = [_keep_only_letters(word) for word in words]
+    words_filtered = [word for word in words_alphabet if len(word) > 1]
+    words_sorted = sorted(words_filtered, key=len, reverse=True)
+    log.info(f"Sorted words: {words_sorted}")
+    if not words_sorted:
         log.warning("No words extracted")
         return ""
-    longest_word = length_sorted[0]
+    longest_word = words_sorted[0]
     log.info(f"Longest word: [{longest_word}]")
     return longest_word
 

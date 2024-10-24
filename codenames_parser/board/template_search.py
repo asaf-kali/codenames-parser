@@ -236,6 +236,7 @@ def _log_iteration(i: int, result: SearchResult):
     save_debug_image(match.convo_normalized, title=f"best match {i} ({match.max_value:.3f})")
     log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} score={match.score:<6.3f}")
 
+
 # def _plot_results(results: list[SearchResult]):
 #     plt.figure()
 #     # plt.xlim(0, 100)
