@@ -1,7 +1,11 @@
+import logging
+
 import cv2
 import numpy as np
 
 from codenames_parser.common.debug_util import save_debug_image
+
+log = logging.getLogger(__name__)
 
 
 def has_larger_dimension(image: np.ndarray, other: np.ndarray) -> bool:
@@ -58,3 +62,18 @@ def border_pad(image: np.ndarray, padding: int) -> np.ndarray:
     """
     p = padding
     return cv2.copyMakeBorder(image, p, p, p, p, cv2.BORDER_REPLICATE)
+
+
+def quantize(image: np.ndarray, k: int = 10) -> np.ndarray:
+    log.debug(f"Quantizing image with k={k}")
+    image = image.copy()
+    z = image.reshape((-1, 3)).astype(np.float32)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+    _, labels, centers = cv2.kmeans(
+        z, K=k, bestLabels=None, criteria=criteria, attempts=10, flags=flags
+    )  # type: ignore
+    centers = np.uint8(centers)
+    quantized_image = centers[labels.flatten()]
+    quantized_image = quantized_image.reshape(image.shape)
+    return quantized_image

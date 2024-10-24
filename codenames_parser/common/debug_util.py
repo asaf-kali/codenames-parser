@@ -115,7 +115,7 @@ def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> str | No
     return save_debug_image(image, title=title)
 
 
-def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str) -> str | None:
+def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str, important: bool = False) -> str | None:
     if not _is_debug_enabled():
         return None
     image = image.copy()
@@ -123,7 +123,7 @@ def draw_polyline(image: np.ndarray, points: Sequence[np.ndarray], title: str) -
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     pts = [np.array(points, dtype=np.int32)]
     cv2.polylines(image, pts=pts, isClosed=True, color=(0, 255, 0), thickness=2)
-    return save_debug_image(image, title=title)
+    return save_debug_image(image, title=title, important=important)
 
 
 def draw_points(image: np.ndarray, points: Sequence[Point], title: str, radius: int = 3) -> str | None:
@@ -149,7 +149,7 @@ def _get_folder(important: bool) -> str:
 
 
 @lru_cache
-def _get_counter(folder: str) -> Counter:
+def _get_counter(folder: str) -> Counter:  # pylint: disable=unused-argument
     return Counter()
 
 

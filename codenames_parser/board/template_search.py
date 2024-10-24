@@ -76,10 +76,7 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
         iter_scales = _rounded_list(np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1))
         factor = 2 ** (num_iterations - i)
         # Debug
-        log.info(f"Iteration {i}")
-        log.info(f"Angles: {iter_angles}")
-        log.info(f"Scales: {iter_scales}")
-        log.info(f"Downsample factor: {factor}")
+        _log_iteration_search_params(i, factor, iter_angles, iter_scales)
         # Downsample
         angle_degrees = _get_rotation_angle(search_result)
         source = apply_rotation(image=source, angle_degrees=angle_degrees)
@@ -108,7 +105,7 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
 
         # Find the best result
         best_iteration_result = _pick_best_result(iteration_results)
-        _log_iteration(i, result=best_iteration_result)
+        _log_iteration_result(i, result=best_iteration_result)
         search_result = best_iteration_result
         # _plot_results(iteration_results)
         min_angle, max_angle = min_angle / 2, max_angle / 2
@@ -123,8 +120,15 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
         top_left=search_result.match.location,
         size=search_result.match.template.shape[:2],
     )
-    log.info(f"Final result: {search_result}")
+    log.debug(f"Final matching result: {search_result}")
     return matched_image
+
+
+def _log_iteration_search_params(i: int, factor: int, iter_angles: list[float], iter_scales: list[float]) -> None:
+    log.debug(f"Iteration {i}")
+    log.debug(f"Angles: {iter_angles}")
+    log.debug(f"Scales: {iter_scales}")
+    log.debug(f"Downsample factor: {factor}")
 
 
 def _grade_match(
@@ -144,10 +148,10 @@ def _grade_match(
 
 def _pick_best_result(iteration_results: list[SearchResult]) -> SearchResult:
     results_ordered = sorted(iteration_results, key=lambda x: x.match.score, reverse=True)
-    log.info("Top results:")
+    log.debug("Top results:")
     for j in range(3):
         result = results_ordered[j]
-        log.info(str(result))
+        log.debug(str(result))
         save_debug_image(result.match.template, title=f"template {j} ({result.name})")
         # save_debug_image(result.match.convo_normalized, title=f"match {j} ({result.name})")
     best_iteration_result = results_ordered[0]
@@ -244,7 +248,7 @@ def _rounded_list(vector: np.ndarray) -> list[float]:
     return [round(float(x), 3) for x in vector]
 
 
-def _log_iteration(i: int, result: SearchResult):
+def _log_iteration_result(i: int, result: SearchResult):
     match = result.match
     save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
     save_debug_image(match.convo_normalized, title=f"best match {i} ({match.max_value:.3f})")

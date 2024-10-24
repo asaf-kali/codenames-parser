@@ -17,7 +17,7 @@ class TesseractLanguageNotAvailable(Exception):
 def fetch_tesseract_language(language: str):
     default_data_file = _get_tesseract_data_file_path(data_folder=DEFAULT_TESSERACT_FOLDER, language=language)
     if os.path.exists(default_data_file):
-        log.info(f"Language data for '{language}' already exists in default location")
+        log.debug(f"Language data for '{language}' already exists in default location")
         return
     user_data_folder = _get_user_data_folder()
     _fetch_tesseract_language(data_folder=user_data_folder, language=language)
@@ -30,7 +30,7 @@ def _fetch_tesseract_language(data_folder: str, language: str):
     os.environ["TESSDATA_PREFIX"] = data_folder
     data_file = f"{data_folder}/{language}.traineddata"
     if os.path.exists(data_file):
-        log.info(f"Language data for '{language}' already exists")
+        log.debug(f"Language data for '{language}' already exists")
         return
     remote_file = f"{TESSDATA_REPO}/raw/main/{language}.traineddata"
     log.info(f"Downloading '{language}' language data for Tesseract from '{remote_file}'")

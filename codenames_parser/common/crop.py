@@ -152,5 +152,4 @@ def rotated_crop(image: np.ndarray, angle: float, top_left: Point, size: tuple[i
     perspective_t = cv2.getPerspectiveTransform(src_points, dst_points)
     # Apply the perspective transform to get the straightened image
     cropped_image = cv2.warpPerspective(image, M=perspective_t, dsize=(width, height))
-    save_debug_image(cropped_image, title="cropped region", important=True)
     return cropped_image
