@@ -163,13 +163,14 @@ def blur_image(image: np.ndarray, k_size: int = 5) -> np.ndarray:
     # Apply Gaussian blur
     kernel = (k_size, k_size)
     blurred = cv2.GaussianBlur(gray, kernel, 0)
-    save_debug_image(blurred, title="blurred")
+    save_debug_image(blurred, title=f"blurred k-{k_size}")
     return blurred
 
 
-def detect_edges(image: np.ndarray, threshold1: int = 50, threshold2: int = 150) -> np.ndarray:
+def detect_edges(image: np.ndarray, is_blurred: bool = True, threshold1: int = 50, threshold2: int = 150) -> np.ndarray:
     # Edge detection
-    edges = cv2.Canny(image, threshold1, threshold2)
+    blurred = image if is_blurred else blur_image(image)
+    edges = cv2.Canny(blurred, threshold1, threshold2)
     save_debug_image(edges, title="edges")
     return edges
 

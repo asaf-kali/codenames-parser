@@ -4,12 +4,7 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from codenames_parser.common.align import (
-    blur_image,
-    detect_edges,
-    extract_lines,
-    get_grid_lines,
-)
+from codenames_parser.common.align import detect_edges, extract_lines, get_grid_lines
 from codenames_parser.common.debug_util import (
     SEPARATOR,
     draw_lines,
@@ -37,8 +32,7 @@ def crop_image(image: np.ndarray, min_crop_ratio: float = 0.4) -> np.ndarray:
     """
     log.info(SEPARATOR)
     log.info("Starting image cropping...")
-    blurred = blur_image(image)
-    edges = detect_edges(blurred)
+    edges = detect_edges(image, is_blurred=False)
     lines = extract_lines(edges, rho=1)
     grid_lines = get_grid_lines(lines, max_angle=1)
     draw_lines(image, lines=grid_lines, title="crop grid lines")

@@ -20,9 +20,10 @@ def equalize_histogram(image: np.ndarray) -> np.ndarray:
     return equalized
 
 
-def normalize(image: np.ndarray, title: str = "normalized") -> np.ndarray:
+def normalize(image: np.ndarray, title: str = "normalized", save: bool = False) -> np.ndarray:
     normalized = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)  # type: ignore[call-overload]
-    save_debug_image(normalized, title=title)
+    if save:
+        save_debug_image(normalized, title=title)
     return normalized
 
 
