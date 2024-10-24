@@ -129,13 +129,6 @@ def _template_search_iteration(  # pylint: disable=too-many-arguments,too-many-p
     return iteration_results
 
 
-def _log_iteration_search_params(i: int, factor: int, iter_angles: list[float], iter_scales: list[float]) -> None:
-    log.debug(f"Iteration {i}")
-    log.debug(f"Angles: {iter_angles}")
-    log.debug(f"Scales: {iter_scales}")
-    log.debug(f"Downsample factor: {factor}")
-
-
 def _grade_match(
     match_result: np.ndarray, result_normalized: np.ndarray, peak_point: Point, template_size: tuple[int, int]
 ) -> float:
@@ -157,7 +150,7 @@ def _pick_best_result(iteration_results: list[SearchResult]) -> SearchResult:
     for j in range(3):
         result = results_ordered[j]
         log.debug(str(result))
-        save_debug_image(result.match.template, title=f"template {j} ({result.name})")
+        # save_debug_image(result.match.template, title=f"template {j} ({result.name})")
         # save_debug_image(result.match.convo_normalized, title=f"match {j} ({result.name})")
     best_iteration_result = results_ordered[0]
     return best_iteration_result
@@ -182,13 +175,6 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
     )
 
 
-def _calculate_area_factor(template_size: tuple[int, int]) -> float:
-    template_area = np.multiply(*template_size)
-    area_log = np.log(template_area)
-    # area_factor = 1 / (1 + area_log)
-    return area_log
-
-
 def _calculate_psr(match_result: np.ndarray, peak_point: Point) -> float:
     peak_value = match_result[peak_point[1], peak_point[0]]
     # Calculate the mean value of the sidelobe
@@ -202,18 +188,31 @@ def _calculate_psr(match_result: np.ndarray, peak_point: Point) -> float:
     return float(psr)
 
 
+def _calculate_area_factor(template_size: tuple[int, int]) -> float:
+    template_area = np.multiply(*template_size)
+    area_log = np.log(template_area)
+    return area_log
+
+
 def _get_rotation_angle(search_result: SearchResult | None) -> float:
     if search_result is None:
         return 0
     return -search_result.angle
 
 
-def _rounded_list(vector: np.ndarray) -> list[float]:
-    return [round(float(x), 3) for x in vector]
+def _log_iteration_search_params(i: int, factor: int, iter_angles: list[float], iter_scales: list[float]) -> None:
+    log.debug(f"Iteration {i}")
+    log.debug(f"Angles: {iter_angles}")
+    log.debug(f"Scales: {iter_scales}")
+    log.debug(f"Downsample factor: {factor}")
 
 
 def _log_iteration_result(i: int, result: SearchResult):
     match = result.match
     save_debug_image(match.template, title=f"best template {i} ({result.angle:.2f}°, X{result.scale:.2f})")
-    save_debug_image(match.convo_normalized, title=f"best match {i} ({match.max_value:.3f})")
+    # save_debug_image(match.convo_normalized, title=f"best match {i} ({match.score:.3f})")
     log.info(f"Iteration {i}: angle={result.angle:<6.2f} scale={result.scale:<6.2f} score={match.score:<6.3f}")
+
+
+def _rounded_list(vector: np.ndarray) -> list[float]:
+    return [round(float(x), 3) for x in vector]
