@@ -13,6 +13,9 @@ from codenames_parser.common.scale import downsample_image
 
 log = logging.getLogger(__name__)
 
+ITERATION_ANGLE_DIFF = 2.0
+ITERATION_SCALE_DIFF = 0.3
+
 
 @dataclass
 class MatchResult:
@@ -45,7 +48,7 @@ class SearchResult:
         return f"{self.name} score={self.match.score:.3f}"
 
 
-def search_template(source: np.ndarray, template: np.ndarray, num_iterations: int = 1) -> np.ndarray:
+def search_template(source: np.ndarray, template: np.ndarray, num_iterations: int = 2) -> np.ndarray:
     """Search for the template location in the source image using pyramid search.
 
     Args:
@@ -58,19 +61,24 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
     """
     # Angle and scale ranges
     scale_ratio = max(template.shape[0] / source.shape[0], template.shape[1] / source.shape[1])
-    min_angle, max_angle = (-5, 5)
+    min_angle, max_angle = (-7, 7)
     min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 4)
     angle_step_num = 5
     scale_step_num = 3
-    iter_angles = np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1)
-    iter_scales = np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1)
 
     search_result = None
     # Iterate
     for i in range(1, num_iterations + 1):
-        # Downsample factor
+        # Iteration parameters
+        iter_angles = _rounded_list(np.linspace(min_angle, max_angle, num=angle_step_num * 2 + 1))
+        iter_scales = _rounded_list(np.linspace(min_scale, max_scale, num=scale_step_num * 2 + 1))
         factor = 2 ** (num_iterations - i)
-        log.info(f"Iteration {i}: downsample factor={factor}")
+        # Debug
+        log.info(f"Iteration {i}")
+        log.info(f"Angles: {iter_angles}")
+        log.info(f"Scales: {iter_scales}")
+        log.info(f"Downsample factor: {factor}")
+        # Downsample
         angle_degrees = _get_rotation_angle(search_result)
         source = apply_rotation(image=source, angle_degrees=angle_degrees)
         source_downsample = downsample_image(source, factor=factor)
@@ -98,9 +106,12 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
 
         # Find the best result
         best_iteration_result = _pick_best_result(iteration_results)
-        # _log_iteration(i, result=best_iteration_result)
+        _log_iteration(i, result=best_iteration_result)
         search_result = best_iteration_result
         # _plot_results(iteration_results)
+        min_angle, max_angle = search_result.angle - ITERATION_ANGLE_DIFF, search_result.angle + ITERATION_ANGLE_DIFF
+        min_scale, max_scale = search_result.scale - ITERATION_SCALE_DIFF, search_result.scale + ITERATION_SCALE_DIFF
+    # Final result
     if search_result is None:
         raise ValueError("No match found")
     matched_image = rotated_crop(
@@ -109,17 +120,33 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
         top_left=search_result.match.location,
         size=search_result.match.template.shape[:2],
     )
+    log.info(f"Final result: {search_result}")
     return matched_image
+
+
+def _grade_match(
+    match_result: np.ndarray, result_normalized: np.ndarray, peak_point: Point, template_size: tuple[int, int]
+) -> float:
+    p = float(np.percentile(result_normalized, q=75))
+    p_normal = 1 - p / 255  # Higher is better
+    max_value = match_result[peak_point[1], peak_point[0]]
+    psr = _calculate_psr(match_result, peak_point)  # Higher is better
+    area_factor = _calculate_area_factor(template_size)
+    score = (300 * p_normal + 300 * max_value + 2 * psr) * area_factor
+    # max_value_factored = max_value * area_factor
+    # score = max_value_factored / area_factor
+    log.debug(f"p_normal={p_normal:<5.3f} psr={psr:<5.3f} area_factor={area_factor:<5.3f} score={score:<5.3f}")
+    return float(score)
 
 
 def _pick_best_result(iteration_results: list[SearchResult]) -> SearchResult:
     results_ordered = sorted(iteration_results, key=lambda x: x.match.score, reverse=True)
-    log.info("Top 5 results:")
-    for j in range(5):
+    log.info("Top results:")
+    for j in range(3):
         result = results_ordered[j]
         log.info(str(result))
         save_debug_image(result.match.template, title=f"template {j} ({result.name})")
-        save_debug_image(result.match.convo_normalized, title=f"match {j} ({result.name})")
+        # save_debug_image(result.match.convo_normalized, title=f"match {j} ({result.name})")
     best_iteration_result = results_ordered[0]
     return best_iteration_result
 
@@ -141,18 +168,6 @@ def _match_template(source: np.ndarray, template: np.ndarray) -> MatchResult:
         location=peak_point,
         score=score,
     )
-
-
-def _grade_match(
-    match_result: np.ndarray, result_normalized: np.ndarray, peak_point: Point, template_size: tuple[int, int]
-) -> float:
-    p = float(np.percentile(result_normalized, q=75))
-    p_normal = 1 - p / 255  # Higher is better
-    psr = _calculate_psr(match_result, peak_point)  # Higher is better
-    area_factor = _calculate_area_factor(template_size)
-    score = 300 * p_normal + 2 * psr * area_factor
-    log.debug(f"p_normal={p_normal:<5.3f} psr={psr:<5.3f} area_factor={area_factor:<5.3f} score={score:<5.3f}")
-    return score
 
 
 def _calculate_area_factor(template_size: tuple[int, int]) -> float:
@@ -220,6 +235,10 @@ def _get_rotation_angle(search_result: SearchResult | None) -> float:
     if search_result is None:
         return 0
     return -search_result.angle
+
+
+def _rounded_list(vector: np.ndarray) -> list[float]:
+    return [round(float(x), 3) for x in vector]
 
 
 def _log_iteration(i: int, result: SearchResult):

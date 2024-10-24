@@ -45,6 +45,7 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
     # size = 500x324
     # top_left = (50, 190)
     # w, h = (400, 90)
+    log.info("Cropping text section...")
     width, height = card.shape[1], card.shape[0]
     text_x = int(width * 0.1)
     text_y = int(height * 0.6)
@@ -57,6 +58,7 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
 
 
 def _extract_text(card: np.ndarray, language: str) -> str:
+    log.info("Extracting text...")
     fetch_tesseract_language(language)
     config = "--psm 11"
     result = pytesseract.image_to_string(card, lang=language, config=config)
