@@ -7,7 +7,7 @@ import numpy as np
 from codenames_parser.common.align import apply_rotation
 from codenames_parser.common.crop import rotated_crop
 from codenames_parser.common.debug_util import save_debug_image
-from codenames_parser.common.general import has_larger_dimension, normalize, border_pad
+from codenames_parser.common.general import border_pad, has_larger_dimension, normalize
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
 
@@ -48,7 +48,7 @@ class SearchResult:
         return f"{self.name} score={self.match.score:.3f}"
 
 
-def search_template(source: np.ndarray, template: np.ndarray, num_iterations: int = 2) -> np.ndarray:
+def search_template(source: np.ndarray, template: np.ndarray, num_iterations: int = 3) -> np.ndarray:
     """Search for the template location in the source image using pyramid search.
 
     Args:
@@ -62,8 +62,9 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
     source = border_pad(source, padding=5)
     # Angle and scale ranges
     scale_ratio = max(template.shape[0] / source.shape[0], template.shape[1] / source.shape[1])
+    max_possible_scale = round(1.0 / scale_ratio, 4)
     min_angle, max_angle = (-10.0, 10.0)
-    min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 4)
+    min_scale, max_scale = 0.1, max_possible_scale
     angle_step_num = 5
     scale_step_num = 3
 
@@ -110,8 +111,9 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
         _log_iteration(i, result=best_iteration_result)
         search_result = best_iteration_result
         # _plot_results(iteration_results)
-        min_angle, max_angle = search_result.angle - ITERATION_ANGLE_DIFF, search_result.angle + ITERATION_ANGLE_DIFF
+        min_angle, max_angle = min_angle / 2, max_angle / 2
         min_scale, max_scale = search_result.scale - ITERATION_SCALE_DIFF, search_result.scale + ITERATION_SCALE_DIFF
+        max_scale = min(max_scale, max_possible_scale)
     # Final result
     if search_result is None:
         raise ValueError("No match found")

@@ -1,6 +1,8 @@
 import logging
 import os
+import shutil
 import time
+from functools import lru_cache
 from typing import Iterable, Sequence
 
 import cv2
@@ -34,7 +36,6 @@ LINE_DRAW_SIZE = 1000
 BOX_COLOR = (0, 255, 0)
 HORIZONTAL_COLOR = np.array([20, 200, 20])
 VERTICAL_COLOR = np.array([200, 20, 200])
-RUN_COUNT = Counter()
 SEPARATOR = "---------------------------------"
 CONTEXT = ""
 
@@ -46,7 +47,7 @@ def set_debug_context(context: str) -> None:
     CONTEXT = context
 
 
-def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> str | None:
+def save_debug_image(image: np.ndarray, title: str, show: bool = False, important: bool = False) -> str | None:
     if not _is_debug_enabled():
         return None
     file_path = get_debug_file_path(title)
@@ -54,6 +55,9 @@ def save_debug_image(image: np.ndarray, title: str, show: bool = False) -> str |
         cv2.imwrite(file_path, image)
         if show:
             cv2.imshow(title, image)
+        if important:
+            important_path = get_debug_file_path(title, important=True)
+            shutil.copy(file_path, important_path)
     except Exception as e:
         log.debug(f"Error saving debug image: {e}")
         return None
@@ -74,11 +78,12 @@ def save_plt_image(plt, title: str, show: bool = False) -> str | None:
     return file_path
 
 
-def get_debug_file_path(title: str) -> str:
-    run_folder = _get_run_folder()
+def get_debug_file_path(title: str, important: bool = False) -> str:
+    run_folder = _get_folder(important=important)
+    counter = _get_counter(run_folder)
     os.makedirs(run_folder, exist_ok=True)
-    RUN_COUNT.add()
-    file_name = f"{RUN_COUNT:03d}: {title}.jpg"
+    counter.add()
+    file_name = f"{counter:03d}: {title}.jpg"
     file_path = os.path.join(run_folder, file_name)
     return file_path
 
@@ -132,13 +137,20 @@ def draw_points(image: np.ndarray, points: Sequence[Point], title: str, radius: 
     return save_debug_image(image, title=title)
 
 
-def _get_run_folder() -> str:
+def _get_folder(important: bool) -> str:
     debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
     run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))
     run_dir = os.path.join(debug_dir, run_id)
-    if CONTEXT:
+    if important:
+        run_dir = os.path.join(run_dir, "\x20important")
+    elif CONTEXT:
         run_dir = os.path.join(run_dir, CONTEXT)
     return run_dir
+
+
+@lru_cache
+def _get_counter(folder: str) -> Counter:
+    return Counter()
 
 
 def _get_line_draw_params(line: Line) -> P1P2:
