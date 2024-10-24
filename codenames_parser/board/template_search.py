@@ -7,7 +7,7 @@ import numpy as np
 from codenames_parser.common.align import apply_rotation
 from codenames_parser.common.crop import rotated_crop
 from codenames_parser.common.debug_util import save_debug_image
-from codenames_parser.common.general import has_larger_dimension, normalize
+from codenames_parser.common.general import has_larger_dimension, normalize, border_pad
 from codenames_parser.common.models import Point
 from codenames_parser.common.scale import downsample_image
 
@@ -59,9 +59,10 @@ def search_template(source: np.ndarray, template: np.ndarray, num_iterations: in
     Returns:
         np.ndarray: Matched region from the source image.
     """
+    source = border_pad(source, padding=5)
     # Angle and scale ranges
     scale_ratio = max(template.shape[0] / source.shape[0], template.shape[1] / source.shape[1])
-    min_angle, max_angle = (-7, 7)
+    min_angle, max_angle = (-10.0, 10.0)
     min_scale, max_scale = 0.1, round(1.0 / scale_ratio, 4)
     angle_step_num = 5
     scale_step_num = 3
@@ -132,7 +133,7 @@ def _grade_match(
     max_value = match_result[peak_point[1], peak_point[0]]
     psr = _calculate_psr(match_result, peak_point)  # Higher is better
     area_factor = _calculate_area_factor(template_size)
-    score = (300 * p_normal + 300 * max_value + 2 * psr) * area_factor
+    score = (300 * p_normal + 100 * max_value + 5 * psr) * area_factor
     # max_value_factored = max_value * area_factor
     # score = max_value_factored / area_factor
     log.debug(f"p_normal={p_normal:<5.3f} psr={psr:<5.3f} area_factor={area_factor:<5.3f} score={score:<5.3f}")

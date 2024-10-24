@@ -48,9 +48,9 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
     log.info("Cropping text section...")
     width, height = card.shape[1], card.shape[0]
     text_x = int(width * 0.1)
-    text_y = int(height * 0.6)
+    text_y = int(height * 0.55)
     text_width = int(width * 0.8)
-    text_height = int(height * 0.3)
+    text_height = int(height * 0.32)
     box = Box(x=text_x, y=text_y, w=text_width, h=text_height)
     text_section = crop_by_box(card, box=box)
     save_debug_image(text_section, title="text section")

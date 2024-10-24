@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 
 import cv2
 import numpy as np
@@ -8,6 +9,7 @@ from codenames_parser.common.debug_util import SEPARATOR, save_debug_image
 log = logging.getLogger(__name__)
 
 
+@lru_cache
 def read_image(image_path: str) -> np.ndarray:
     """
     Reads an image from a file.
