@@ -23,7 +23,7 @@ def _test_parse_board(case: ParseBoardTestCase):
     actual_grid = Grid.from_list(row_size=GRID_WIDTH, items=words)
     diff = expected_grid.diff(other=actual_grid)
     print_diff(diff)
-    assert len(diff) < 3
+    assert len(diff) <= 1
 
 
 def test_parse_board_case_1_top():

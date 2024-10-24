@@ -11,7 +11,6 @@ from codenames_parser.common.debug_util import (
     save_debug_image,
     set_debug_context,
 )
-from codenames_parser.common.general import quantize
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box
 from codenames_parser.resources.resource_manager import get_card_template_path
@@ -26,19 +25,18 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
         set_debug_context(f"card {i}")
         log.info(f"\n{SEPARATOR}")
         log.info(f"Processing card {i}")
-        card = _parse_card(cell, language=language, card_template=card_template)
+        card = _parse_card(i=i, image=cell, language=language, card_template=card_template)
         cards.append(card)
     return cards
 
 
-def _parse_card(image: np.ndarray, language: str, card_template: np.ndarray) -> str:
+def _parse_card(i: int, image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
     actual_card = search_template(source=image, template=card_template)
-    save_debug_image(actual_card, title="copped card", important=True)
+    save_debug_image(actual_card, title=f"copped card {i}", important=True)
     text_section = _text_section_crop(actual_card)
-    text_section_quantized = quantize(text_section, k=7)
-    save_debug_image(text_section_quantized, title="text section quantized", important=True)
-    text = _extract_text(text_section_quantized, language=language)
+    text = _extract_text(text_section, language=language)
+    save_debug_image(text_section, title=f"text section: {text}", important=True)
     return text
 
 
