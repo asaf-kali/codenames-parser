@@ -5,6 +5,7 @@ from codenames.game.board import Board
 from codenames.game.card import Card
 
 from codenames_parser.board.board_parser import parse_board
+from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.logging import configure_logging
 
 
@@ -18,7 +19,8 @@ def entrypoint():
         language = sys.argv[2]
     else:
         language = "heb"
-    words = parse_board(image_path, language=language)
+    image = read_image(image_path)
+    words = parse_board(image, language=language)
     cards = [Card(word=word) for word in words]
     board = Board(cards=cards, language=language)
     table = board.as_table

@@ -7,13 +7,11 @@ from codenames_parser.board.grid_detection import extract_boxes
 from codenames_parser.common.align import align_image, apply_rotations
 from codenames_parser.common.crop import crop_by_box
 from codenames_parser.common.debug_util import draw_boxes
-from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box
 from codenames_parser.common.scale import scale_down_image
 
 
-def parse_board(image_path: str, language: str) -> list[str]:
-    image = read_image(image_path)
+def parse_board(image: np.ndarray, language: str) -> list[str]:
     scale_result = scale_down_image(image)
     alignment_result = align_image(scale_result.image)
     boxes = extract_boxes(image=alignment_result.aligned_image)
