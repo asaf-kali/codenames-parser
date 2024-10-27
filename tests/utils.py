@@ -15,12 +15,15 @@ class ListDiff:
         return f"{self.index}: [{self.value_self}] != [{self.value_other}]"
 
 
-def list_diff(l1: list, l2: list) -> list[ListDiff]:
+def list_diff(l1: list, l2: list, max_diff: float = 0) -> list[ListDiff]:
     diffs = []
     if len(l1) != len(l2):
         raise ValueError(f"Lists are not of the same size: {len(l1)} != {len(l2)}")
     for i, (v1, v2) in enumerate(zip(l1, l2)):
         if v1 != v2:
+            if _is_number(v1) and _is_number(v2):
+                if abs(v1 - v2) <= max_diff:
+                    continue
             diff = ListDiff(index=i, value_self=v1, value_other=v2)
             diffs.append(diff)
     return diffs
@@ -33,3 +36,7 @@ def print_diff(diff: list[ListDiff]):
     log.error(f"Diff pretty print ({len(diff)} items):")
     for item in diff:
         log.error(item)
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float))
