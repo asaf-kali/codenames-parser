@@ -1,12 +1,6 @@
-import os
-
-import pytest
-
+from codenames_parser.common.debug_util import set_save_debug_images
 from codenames_parser.common.logging import configure_logging
 
 configure_logging()
 
-
-@pytest.fixture(autouse=True)
-def set_env_vars():
-    os.environ["DEBUG_DISABLED"] = "true"
+set_save_debug_images(enabled=False)

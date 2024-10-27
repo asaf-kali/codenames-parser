@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import time
+from collections import defaultdict
 from functools import lru_cache
 from typing import Iterable, Sequence
 
@@ -10,27 +11,7 @@ import numpy as np
 
 from codenames_parser.common.models import P1P2, Box, Color, Line, Point
 
-
-class Counter:
-    def __init__(self):
-        self.count = 0
-
-    def add(self):
-        self.count += 1
-
-    def total(self):
-        return self.count
-
-    def __int__(self):
-        return self.count
-
-    def __str__(self):
-        return str(self.count)
-
-    def __format__(self, format_spec):
-        return format(self.count, format_spec)
-
-
+DEBUG_ENV_VAR = "SAVE_DEBUG_IMAGES"
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 LINE_DRAW_SIZE = 1000
 BOX_COLOR = (0, 255, 0)
@@ -40,6 +21,10 @@ SEPARATOR = "---------------------------------"
 CONTEXT = ""
 
 log = logging.getLogger(__name__)
+
+
+def set_save_debug_images(enabled: bool) -> None:
+    os.environ[DEBUG_ENV_VAR] = str(enabled).lower()
 
 
 def set_debug_context(context: str) -> None:
@@ -80,12 +65,17 @@ def save_plt_image(plt, title: str, show: bool = False) -> str | None:
 
 def get_debug_file_path(title: str, important: bool = False) -> str:
     run_folder = _get_folder(important=important)
-    counter = _get_counter(run_folder)
+    counter = _get_counter()
+    counter[run_folder] += 1
     os.makedirs(run_folder, exist_ok=True)
-    counter.add()
-    file_name = f"{counter:03d}: {title}.jpg"
+    file_name = f"{counter[run_folder]:03d}: {title}.jpg"
     file_path = os.path.join(run_folder, file_name)
     return file_path
+
+
+@lru_cache
+def _get_counter() -> dict:
+    return defaultdict(int)
 
 
 def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2) -> str | None:
@@ -148,11 +138,6 @@ def _get_folder(important: bool) -> str:
     return run_dir
 
 
-@lru_cache
-def _get_counter(folder: str) -> Counter:  # pylint: disable=unused-argument
-    return Counter()
-
-
 def _get_line_draw_params(line: Line) -> P1P2:
     rho, theta = line
     a = np.cos(theta)
@@ -179,4 +164,4 @@ def _pick_line_color(line: Line) -> Color:
 
 
 def _is_debug_enabled() -> bool:
-    return os.getenv("DEBUG_DISABLED", "false").lower() not in ["true", "1"]
+    return os.getenv(DEBUG_ENV_VAR, "false").lower() in ["true", "1"]
