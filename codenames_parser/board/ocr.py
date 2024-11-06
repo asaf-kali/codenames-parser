@@ -29,6 +29,10 @@ class TesseractResult:
     level: int
     index: WordIndex
 
+    @property
+    def is_word(self) -> bool:
+        return self.level == 5
+
 
 class TesseractLanguageNotAvailable(Exception):
     pass
@@ -81,3 +85,28 @@ def _download_file(source: str, destination: str):
     get_request.raise_for_status()
     with open(destination, "wb") as f:
         f.write(get_request.content)
+
+
+def parse_tesseract_data(data: dict) -> list[TesseractResult]:
+    results = []
+    n_boxes = len(data["text"])
+    for i in range(n_boxes):
+        result = _parse_result(data, i)
+        results.append(result)
+    return results
+
+
+def _parse_result(data: dict, i: int) -> TesseractResult:
+    text = data["text"][i]
+    confidence = int(data["conf"][i])
+    x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
+    box = Box(x=x, y=y, w=w, h=h)
+    level = int(data["level"][i])
+    index = WordIndex(
+        page=int(data["page_num"][i]),
+        block=int(data["block_num"][i]),
+        paragraph=int(data["par_num"][i]),
+        line=int(data["line_num"][i]),
+    )
+    result = TesseractResult(text=text, confidence=confidence, box=box, level=level, index=index)
+    return result

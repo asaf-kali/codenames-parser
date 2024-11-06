@@ -1,12 +1,13 @@
 import logging
+from dataclasses import dataclass
 
 import numpy as np
 import pytesseract
 
 from codenames_parser.board.ocr import (
     TesseractResult,
-    WordIndex,
     fetch_tesseract_language,
+    parse_tesseract_data,
 )
 from codenames_parser.board.template_search import search_template
 from codenames_parser.common.crop import crop_by_box
@@ -18,7 +19,7 @@ from codenames_parser.common.debug_util import (
 )
 from codenames_parser.common.general import quantize, sharpen
 from codenames_parser.common.image_reader import read_image
-from codenames_parser.common.models import Box
+from codenames_parser.common.models import Box, Size
 from codenames_parser.common.scale import resize_image
 from codenames_parser.resources.resource_manager import get_card_template_path
 
@@ -73,35 +74,79 @@ def _process_text_section(text_section: np.ndarray) -> np.ndarray:
     return quantized
 
 
-def _extract_text(card: np.ndarray, language: str) -> str:
+def _extract_text(image: np.ndarray, language: str) -> str:
     log.debug("Extracting text...")
     fetch_tesseract_language(language)
     config = "--psm 11"
-    data = pytesseract.image_to_data(card, output_type=pytesseract.Output.DICT, lang=language, config=config)
+    data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT, lang=language, config=config)
     results = parse_tesseract_data(data)
     boxes = [result.box for result in results]
-    draw_boxes(image=card, boxes=boxes, title="tesseract boxes", thickness=3)
-    word = _pick_word_from_results(results)
+    draw_boxes(image=image, boxes=boxes, title="tesseract boxes", thickness=3)
+    word = _pick_word_from_results(image=image, results=results)
     log.info(f"Extracted word: [{word}]")
     return word.strip()
 
 
-def _pick_word_from_results(results: list[TesseractResult]) -> str:
-    words = [result.text for result in results]
+def _pick_word_from_results(image: np.ndarray, results: list[TesseractResult]) -> str:
+    word_results = [result for result in results if result.is_word]
+    words = [result.text for result in word_results]
     log.info(f"Extracted words: {words}")
-    for result in results:
+    for result in word_results:
         result.text = _keep_only_letters(result.text)
-    good_results = [result for result in results if len(result.text) > 1 and result.confidence > 30]
-    if not good_results:
+    possible_words = [result for result in word_results if len(result.text) > 1]
+    if not possible_words:
         log.warning("No good results extracted")
         return ""
-    good_results.sort(key=lambda result: result.confidence, reverse=True)
-    if len(good_results) > 1:
-        good_words = [result.text for result in good_results]
+    if len(possible_words) > 1:
+        good_words = [result.text for result in possible_words]
         log.info(f"Good words: {good_words}")
-    best_result = good_results[0]
-    log.info(f"Best result: [{best_result.text}]")
+        grading_context = _create_grading_context(image)
+        possible_words.sort(key=lambda result: _grade_result(result, grading_context=grading_context), reverse=True)
+        good_words_sorted = [result.text for result in possible_words]
+        log.info(f"Sorted good words: {good_words_sorted}")
+    best_result = possible_words[0]
     return best_result.text
+
+
+def _keep_only_letters(text: str) -> str:
+    return "".join(filter(str.isalpha, text))  # type: ignore
+
+
+@dataclass
+class GradingContext:
+    image_size: Size
+    expected_letter_width: float
+    expected_letter_height: float
+
+
+def _create_grading_context(image: np.ndarray) -> GradingContext:
+    size = Size(width=image.shape[1], height=image.shape[0])
+    expected_letter_width = size.width / 20  # We expect around 20 letters to fit in the text section
+    expected_letter_height = size.height / 1.5  # We expect the word to be around half of the text section height
+    return GradingContext(
+        image_size=size,
+        expected_letter_width=expected_letter_width,
+        expected_letter_height=expected_letter_height,
+    )
+
+
+def _grade_result(result: TesseractResult, grading_context: GradingContext) -> float:
+    word_length = len(result.text)
+    expected_width = grading_context.expected_letter_width * word_length
+    expected_height = grading_context.expected_letter_height
+    actual_width, actual_height = result.box.w, result.box.h
+    width_distance = _distance_from_range(actual_width, expected_width * 0.8, expected_width * 1.2)
+    height_distance = _distance_from_range(actual_height, expected_height * 0.8, expected_height * 1.2)
+    width_distance += 1
+    height_distance += 1
+    return 1 / (width_distance * height_distance)
+
+
+def _distance_from_range(number: float, lower: float, upper: float) -> float:
+    if lower <= number <= upper:
+        return 0
+    limit = lower if number < lower else upper
+    return abs(number - limit)
 
 
 # def _pick_word_from_raw_text(raw_text: str) -> str:
@@ -116,32 +161,3 @@ def _pick_word_from_results(results: list[TesseractResult]) -> str:
 #         return ""
 #     longest_word = words_sorted[0]
 #     return longest_word
-
-
-def _keep_only_letters(text: str) -> str:
-    return "".join(filter(str.isalpha, text))  # type: ignore
-
-
-def parse_tesseract_data(data: dict) -> list[TesseractResult]:
-    results = []
-    n_boxes = len(data["text"])
-    for i in range(n_boxes):
-        result = _parse_result(data, i)
-        results.append(result)
-    return results
-
-
-def _parse_result(data: dict, i: int) -> TesseractResult:
-    text = data["text"][i]
-    confidence = int(data["conf"][i])
-    x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
-    box = Box(x=x, y=y, w=w, h=h)
-    level = int(data["level"][i])
-    index = WordIndex(
-        page=int(data["page_num"][i]),
-        block=int(data["block_num"][i]),
-        paragraph=int(data["par_num"][i]),
-        line=int(data["line_num"][i]),
-    )
-    result = TesseractResult(text=text, confidence=confidence, box=box, level=level, index=index)
-    return result

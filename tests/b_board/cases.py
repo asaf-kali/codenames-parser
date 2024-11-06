@@ -102,6 +102,7 @@ BOARD1_TOP_CASE = ParseBoardTestCase(
     fixture_file="board1_top.jpg",
     language="heb",
     expected_words=BOARD_1_WORDS,
+    allowed_errors=0,
 )
 
 BOARD2_CASE = ParseBoardTestCase(
@@ -115,7 +116,7 @@ BOARD2_TOP_CASE = ParseBoardTestCase(
     fixture_file="board2_top.jpg",
     language="heb",
     expected_words=BOARD_2_WORDS,
-    allowed_errors=5,
+    allowed_errors=3,
 )
 
 BOARD3_TILT_CASE = ParseBoardTestCase(
@@ -134,5 +135,5 @@ BOARD3_TOP2_CASE = ParseBoardTestCase(
     fixture_file="board3_top2.jpg",
     language="heb",
     expected_words=BOARD_3_WORDS,
-    allowed_errors=3,
+    allowed_errors=2,
 )

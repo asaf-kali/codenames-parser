@@ -38,6 +38,28 @@ class Point(Sequence[int]):
 
 
 @dataclass
+class Size(Sequence[int]):
+    width: int
+    height: int
+
+    @property
+    def tuple(self):
+        return self.width, self.height
+
+    def __getitem__(self, index):
+        return self.tuple[index]
+
+    def __iter__(self):
+        return iter(self.tuple)
+
+    def __len__(self):
+        return len(self.tuple)
+
+    def __str__(self):
+        return f"({self.width}, {self.height})"
+
+
+@dataclass
 class Box:
     x: int
     y: int

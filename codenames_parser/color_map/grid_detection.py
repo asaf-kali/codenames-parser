@@ -49,8 +49,8 @@ def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
     num_rows, num_cols = GRID_HEIGHT, GRID_WIDTH
 
     # Collect x and y centers of existing boxes
-    x_centers = [box.x + box.w / 2 for box in boxes]
-    y_centers = [box.y + box.h / 2 for box in boxes]
+    x_centers = [box.x_center for box in boxes]
+    y_centers = [box.y_center for box in boxes]
 
     # Compute average width and height of the boxes
     avg_w = int(np.mean([box.w for box in boxes]))
