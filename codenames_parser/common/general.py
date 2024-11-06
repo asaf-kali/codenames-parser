@@ -67,7 +67,8 @@ def border_pad(image: np.ndarray, padding: int) -> np.ndarray:
 def quantize(image: np.ndarray, k: int = 10) -> np.ndarray:
     log.debug(f"Quantizing image with k={k}")
     image = image.copy()
-    z = image.reshape((-1, 3)).astype(np.float32)
+    reshape = (-1, 1) if _is_grayscale(image) else (-1, 3)
+    z = image.reshape(reshape).astype(np.float32)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     flags = cv2.KMEANS_RANDOM_CENTERS
     _, labels, centers = cv2.kmeans(
@@ -77,3 +78,13 @@ def quantize(image: np.ndarray, k: int = 10) -> np.ndarray:
     quantized_image = centers[labels.flatten()]
     quantized_image = quantized_image.reshape(image.shape)
     return quantized_image
+
+
+def _is_grayscale(image: np.ndarray) -> bool:
+    return len(image.shape) == 2 or image.shape[2] == 1
+
+
+def sharpen(image: np.ndarray, kernel_size: int = 5, sigma: float = 1.0) -> np.ndarray:
+    blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
+    sharpened = cv2.addWeighted(image, 1.5, blurred, -0.5, 0)
+    return sharpened

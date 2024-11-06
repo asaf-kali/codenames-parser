@@ -11,8 +11,10 @@ from codenames_parser.common.debug_util import (
     save_debug_image,
     set_debug_context,
 )
+from codenames_parser.common.general import quantize, sharpen
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.models import Box
+from codenames_parser.common.scale import resize_image
 from codenames_parser.resources.resource_manager import get_card_template_path
 
 log = logging.getLogger(__name__)
@@ -35,7 +37,8 @@ def _parse_card(i: int, image: np.ndarray, language: str, card_template: np.ndar
     actual_card = search_template(source=image, template=card_template)
     save_debug_image(actual_card, title=f"copped card {i}", important=True)
     text_section = _text_section_crop(actual_card)
-    text = _extract_text(text_section, language=language)
+    text_section_processed = _process_text_section(text_section)
+    text = _extract_text(text_section_processed, language=language)
     save_debug_image(text_section, title=f"text section: {text}", important=True)
     return text
 
@@ -55,6 +58,14 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
     text_section = crop_by_box(card, box=box)
     save_debug_image(text_section, title="text section")
     return text_section
+
+
+def _process_text_section(text_section: np.ndarray) -> np.ndarray:
+    resized = resize_image(image=text_section, dst_width=500)
+    sharpened = sharpen(image=resized)
+    quantized = quantize(image=sharpened, k=6)
+    save_debug_image(quantized, title="text section for parsing", important=True)
+    return quantized
 
 
 def _extract_text(card: np.ndarray, language: str) -> str:
