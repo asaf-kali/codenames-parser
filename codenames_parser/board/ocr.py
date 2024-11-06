@@ -1,13 +1,33 @@
 import logging
 import os.path
+from dataclasses import dataclass
 
 import platformdirs
 import requests
+
+from codenames_parser.common.models import Box
 
 DEFAULT_TESSERACT_FOLDER = "/usr/share/tesseract-ocr/4.00/tessdata"
 TESSDATA_REPO = "https://github.com/tesseract-ocr/tessdata"
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class WordIndex:
+    page: int
+    block: int
+    paragraph: int
+    line: int
+
+
+@dataclass
+class TesseractResult:
+    text: str
+    confidence: float
+    box: Box
+    level: int
+    index: WordIndex
 
 
 class TesseractLanguageNotAvailable(Exception):
