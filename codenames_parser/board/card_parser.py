@@ -93,18 +93,19 @@ def _pick_word_from_results(image: np.ndarray, results: list[TesseractResult]) -
     log.info(f"Extracted words: {words}")
     for result in word_results:
         result.text = _keep_only_letters(result.text)
-    possible_words = [result for result in word_results if len(result.text) > 1]
-    if not possible_words:
+    possible_results = [result for result in word_results if len(result.text) > 1]
+    if not possible_results:
         log.warning("No good results extracted")
         return ""
-    if len(possible_words) > 1:
-        good_words = [result.text for result in possible_words]
-        log.info(f"Good words: {good_words}")
+    if len(possible_results) > 1:
+        possible_words = [result.text for result in possible_results]
+        log.info(f"Good words: {possible_words}")
         grading_context = _create_grading_context(image)
-        possible_words.sort(key=lambda result: _grade_result(result, grading_context=grading_context), reverse=True)
-        good_words_sorted = [result.text for result in possible_words]
-        log.info(f"Sorted good words: {good_words_sorted}")
-    best_result = possible_words[0]
+        grades = {result.text: _grade_result(result, grading_context=grading_context) for result in possible_results}
+        grades_sorted = dict(sorted(grades.items(), key=lambda item: item[1], reverse=True))
+        log.info(f"Words grades: {grades_sorted}")
+        possible_results.sort(key=lambda result: grades[result.text], reverse=True)
+    best_result = possible_results[0]
     return best_result.text
 
 
@@ -139,7 +140,14 @@ def _grade_result(result: TesseractResult, grading_context: GradingContext) -> f
     height_distance = _distance_from_range(actual_height, expected_height * 0.8, expected_height * 1.2)
     width_distance += 1
     height_distance += 1
-    return 1 / (width_distance * height_distance)
+    expected_area = expected_width * expected_height
+    actual_area = actual_width * actual_height
+    grade = round(1000 / (width_distance * height_distance), 3)
+    log.info(
+        f"Word: [{result.text}], Length: [{word_length}], "
+        f"Expected area: [{expected_area:.0f}], Actual area: [{actual_area:.0f}]"
+    )
+    return grade
 
 
 def _distance_from_range(number: float, lower: float, upper: float) -> float:
