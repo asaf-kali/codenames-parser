@@ -41,11 +41,11 @@ def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
 def _parse_card(i: int, image: np.ndarray, language: str, card_template: np.ndarray) -> str:
     save_debug_image(image, title="original card")
     actual_card = search_template(source=image, template=card_template)
-    save_debug_image(actual_card, title=f"copped card {i}", important=True)
+    save_debug_image(actual_card, title=f"copped card {i}")
     text_section = _text_section_crop(actual_card)
     text_section_processed = _process_text_section(text_section)
     text = _extract_text(text_section_processed, language=language)
-    save_debug_image(text_section, title=f"text section: {text}", important=True)
+    # save_debug_image(text_section, title=f"text section: {text}", important=True)
     return text
 
 

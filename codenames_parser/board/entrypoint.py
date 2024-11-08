@@ -12,8 +12,8 @@ from codenames_parser.common.logging import configure_logging
 
 def entrypoint():
     configure_logging()
-    if len(sys.argv) != 2:
-        print(f"Usage: python {sys.argv[0]} <image_path>")
+    if len(sys.argv) < 2:
+        print(f"Usage: python {sys.argv[0]} <image_path> [<language>]")
         sys.exit(1)
     image_path = sys.argv[1]
     if len(sys.argv) > 2:

@@ -79,6 +79,12 @@ def crop_by_box(image: np.ndarray, box: Box) -> np.ndarray:
     """
     Crop the input image according to the given box.
     """
+    if box.x < 0:
+        box.w += box.x
+        box.x = 0
+    if box.y < 0:
+        box.h += box.y
+        box.y = 0
     cropped = image[box.y : box.y + box.h, box.x : box.x + box.w]
     # save_debug_image(cropped, title="cropped cell")
     return cropped
@@ -146,7 +152,7 @@ def rotated_crop(image: np.ndarray, angle: float, top_left: Point, size: tuple[i
     )
     # Source points are the matched corners
     src_points = matched_corners.astype(np.float32)
-    draw_polyline(image, points=src_points, title="matched region")
+    draw_polyline(image, points=src_points, title="matched region", important=True)
 
     # Compute the perspective transform matrix
     perspective_t = cv2.getPerspectiveTransform(src_points, dst_points)
