@@ -66,18 +66,18 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
     return text_section
 
 
-def _process_text_section(text_section: np.ndarray) -> np.ndarray:
+def _process_text_section(text_section: np.ndarray, quantization_k: int = 6) -> np.ndarray:
     resized = resize_image(image=text_section, dst_width=500)
     sharpened = sharpen(image=resized)
-    quantized = quantize(image=sharpened, k=6)
+    quantized = quantize(image=sharpened, k=quantization_k)
     save_debug_image(quantized, title="text section for parsing", important=True)
     return quantized
 
 
 def _extract_text(image: np.ndarray, language: str) -> str:
-    log.debug("Extracting text...")
     fetch_tesseract_language(language)
     config = "--psm 11"
+    log.info("Running OCR...")
     data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT, lang=language, config=config)
     results = parse_tesseract_data(data)
     boxes = [result.box for result in results]
