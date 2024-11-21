@@ -7,8 +7,8 @@ from tests.fixtures import get_fixture_path
 from tests.utils import list_diff, print_diff
 
 TEST_CASES = [
-    "small_1.png",
-    "board3_top.jpg",
+    get_fixture_path("color_maps/classic/small_1.png"),
+    get_fixture_path("boards/heb/board3_top.jpg"),
 ]
 
 

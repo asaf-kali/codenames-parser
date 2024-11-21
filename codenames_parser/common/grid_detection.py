@@ -73,7 +73,7 @@ def _box_iou(box1: Box, box2: Box) -> float:
 
 def filter_non_common_boxes(boxes: list[Box]) -> list[Box]:
     log.info(f"Raw box count: {len(boxes)}")
-    if len(boxes) < 4:
+    if len(boxes) < 5:
         raise NotEnoughBoxesError()
     common_area = _detect_common_box_area(boxes)
     filtered_boxes = [box for box in boxes if _is_common_box(box, common_area)]
