@@ -1,6 +1,8 @@
 import logging
 import sys
 
+FORMAT = "[%(asctime)s.%(msecs)03d] [%(levelname).4s] %(message)s"
+
 
 def configure_logging():
-    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [%(levelname).4s] %(message)s", stream=sys.stdout)
+    logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="%H:%M:%S", stream=sys.stdout)

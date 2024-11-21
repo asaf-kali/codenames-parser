@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from codenames.duet.card import DuetColor
 from codenames.generic.card import CardColor
 
 from codenames_parser.color_map.color_translator import get_board_colors
@@ -37,14 +38,21 @@ def find_color_boxes(image: np.ndarray, color_type: type[CardColor]) -> list[Box
     board_colors = get_board_colors(color_type=color_type)
     masks = [color_distance_mask(image, color=color) for color in board_colors]
     boxes = []
+    expected_ratio = _get_expected_ratio(color_type=color_type)
     for mask in masks:
-        color_boxes = find_boxes(image=mask.filtered_negative)
+        color_boxes = find_boxes(image=mask.filtered_negative, expected_ratio=expected_ratio)
         draw_boxes(image, boxes=color_boxes, title="color boxes")
         boxes.extend(color_boxes)
     draw_boxes(image, boxes=boxes, title="boxes raw")
     color_boxes = filter_non_common_boxes(boxes)
     draw_boxes(image, boxes=color_boxes, title="boxes filtered")
     return color_boxes
+
+
+def _get_expected_ratio(color_type: type[CardColor]) -> float:
+    if color_type == DuetColor:
+        return 1.4
+    return 1
 
 
 def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
