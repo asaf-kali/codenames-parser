@@ -1,14 +1,19 @@
 from typing import NamedTuple
 
 from codenames.classic.color import ClassicColor
+from codenames.duet.card import DuetColor
+from codenames.generic.card import CardColor
 
 
 class ColorMapTestCase(NamedTuple):
     fixture_file: str
     expected_colors: list[ClassicColor]
+    color_type: type[CardColor]
 
 
-COLORS_1 = [
+### Classic ###
+
+CLASSIC_COLORS_1 = [
     ClassicColor.NEUTRAL,
     ClassicColor.RED,
     ClassicColor.BLUE,
@@ -35,9 +40,7 @@ COLORS_1 = [
     ClassicColor.RED,
     ClassicColor.BLUE,
 ]
-
-
-COLORS_2 = [
+CLASSIC_COLORS_2 = [
     ClassicColor.RED,
     ClassicColor.NEUTRAL,
     ClassicColor.BLUE,
@@ -64,9 +67,7 @@ COLORS_2 = [
     ClassicColor.NEUTRAL,
     ClassicColor.RED,
 ]
-
-
-COLORS_3 = [
+CLASSIC_COLORS_3 = [
     ClassicColor.NEUTRAL,
     ClassicColor.RED,
     ClassicColor.BLUE,
@@ -94,10 +95,99 @@ COLORS_3 = [
     ClassicColor.RED,
 ]
 
+CLASSIC_TOP = ColorMapTestCase(fixture_file="top_view.png", expected_colors=CLASSIC_COLORS_1, color_type=ClassicColor)
+CLASSIC_ROTATED = ColorMapTestCase(
+    fixture_file="cut_rotated.png", expected_colors=CLASSIC_COLORS_1, color_type=ClassicColor
+)
+CLASSIC_SMALL_1 = ColorMapTestCase(
+    fixture_file="small_1.png", expected_colors=CLASSIC_COLORS_2, color_type=ClassicColor
+)
+CLASSIC_HIGH_RES = ColorMapTestCase(
+    fixture_file="high_res.png", expected_colors=CLASSIC_COLORS_3, color_type=ClassicColor
+)
 
-CASE_TOP_VIEW = ColorMapTestCase(fixture_file="top_view.png", expected_colors=COLORS_1)
-CASE_CUT_ROTATED = ColorMapTestCase(fixture_file="cut_rotated.png", expected_colors=COLORS_1)
-CASE_SMALL_1 = ColorMapTestCase(fixture_file="small_1.png", expected_colors=COLORS_2)
-CASE_HIGH_RES = ColorMapTestCase(fixture_file="high_res.png", expected_colors=COLORS_3)
+### Duet ###
 
-MAP_CASES = [CASE_TOP_VIEW, CASE_CUT_ROTATED, CASE_SMALL_1, CASE_HIGH_RES]
+DUET_COLORS_1 = [
+    # Row 1
+    DuetColor.NEUTRAL,
+    DuetColor.ASSASSIN,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    # Row 2
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    # Row 3
+    DuetColor.ASSASSIN,
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    # Row 4
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.ASSASSIN,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    # Row 1
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+]
+
+DUET_COLORS_2 = [
+    # Row 1
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.ASSASSIN,
+    # Row 2
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    # Row 3
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    DuetColor.NEUTRAL,
+    # Row 4
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    DuetColor.ASSASSIN,
+    DuetColor.NEUTRAL,
+    # Row 5
+    DuetColor.NEUTRAL,
+    DuetColor.ASSASSIN,
+    DuetColor.GREEN,
+    DuetColor.GREEN,
+    DuetColor.NEUTRAL,
+]
+
+DUET_MAP1_FRONT = ColorMapTestCase(fixture_file="map1_front.jpg", expected_colors=DUET_COLORS_1, color_type=DuetColor)
+DUET_MAP1_TOP = ColorMapTestCase(fixture_file="map1_top.jpg", expected_colors=DUET_COLORS_1, color_type=DuetColor)
+DUET_MAP2_FRONT = ColorMapTestCase(fixture_file="map2_front.jpg", expected_colors=DUET_COLORS_2, color_type=DuetColor)
+DUET_MAP2_TOP = ColorMapTestCase(fixture_file="map2_top.jpg", expected_colors=DUET_COLORS_2, color_type=DuetColor)
+
+MAP_CASES = [
+    # Classic
+    CLASSIC_TOP,
+    CLASSIC_ROTATED,
+    CLASSIC_SMALL_1,
+    CLASSIC_HIGH_RES,
+    # Duet
+    DUET_MAP1_FRONT,
+    DUET_MAP1_TOP,
+    DUET_MAP2_FRONT,
+    DUET_MAP2_TOP,
+]
