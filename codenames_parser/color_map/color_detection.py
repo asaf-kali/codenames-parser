@@ -1,16 +1,20 @@
 import logging
+from typing import Type
 
 import numpy as np
-from codenames.game.color import CardColor
+from codenames.generic.card import CardColor
 from sklearn.cluster import KMeans
 
-from codenames_parser.color_map.consts import CARD_COLOR_TO_COLOR
+from codenames_parser.color_map.color_translator import (
+    ColorTranslator,
+    get_color_translator,
+)
 from codenames_parser.common.debug_util import SEPARATOR
 
 log = logging.getLogger(__name__)
 
 
-def classify_cell_colors(cells: list[np.ndarray]) -> list[CardColor]:
+def classify_cell_colors[C: CardColor](cells: list[np.ndarray], color_type: Type[C]) -> list[C]:
     """
     Classifies the color of each cell by clustering their average colors.
     """
@@ -31,10 +35,11 @@ def classify_cell_colors(cells: list[np.ndarray]) -> list[CardColor]:
     labels = kmeans.fit_predict(avg_colors)
 
     # Map cluster labels to CardColor using predefined CODENAMES colors
-    cluster_to_color = assign_colors_to_clusters(kmeans.cluster_centers_)
+    color_translator = get_color_translator(color_type=color_type)
+    cluster_to_color = assign_colors_to_clusters(kmeans.cluster_centers_, color_translator=color_translator)
 
     # Reshape labels back to grid format
-    card_colors: list[CardColor] = []
+    card_colors: list[C] = []
     for i in range(len(cells)):
         cluster_label = labels[i]
         card_color = cluster_to_color[cluster_label]
@@ -42,17 +47,17 @@ def classify_cell_colors(cells: list[np.ndarray]) -> list[CardColor]:
     return card_colors
 
 
-def assign_colors_to_clusters(cluster_centers: np.ndarray) -> dict:
+def assign_colors_to_clusters(cluster_centers: np.ndarray, color_translator: ColorTranslator) -> dict:
     """
     Assigns CardColor to each cluster based on the closest CODENAMES color.
     """
     cluster_to_color = {}
     for i, center in enumerate(cluster_centers):
-        distances = {}
-        for card_color, codename_color in CARD_COLOR_TO_COLOR.items():
+        distances: dict[str, float] = {}
+        for card_color, codename_color in color_translator.items():
             # Compute the distance between the cluster center and the CODENAMES color
             distance = np.linalg.norm(center - codename_color.vector)
-            distances[card_color] = distance
+            distances[card_color] = float(distance)
         # Find the CardColor with the minimum distance
         assigned_color = min(distances, key=distances.get)  # type: ignore
         cluster_to_color[i] = assigned_color

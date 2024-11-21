@@ -17,7 +17,7 @@ Issues = "https://github.com/asaf-kali/codenames-parser/issues"
 # Core
 python = "^3.12"
 # Codenames base
-codenames = "^4.1.7"
+codenames = "^5.2"
 # Classic image processing
 numpy = "^2.1"
 opencv-python = "^4.10"
@@ -37,7 +37,7 @@ coverage = "^7.2"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.1"
-black = "^23.3"
+black = "^24.10"
 isort = "^5.12"
 mypy = "^1.2"
 pylint = "^3.0"

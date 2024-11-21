@@ -1,8 +1,10 @@
 import logging
+from typing import Type
 
 import numpy as np
+from codenames.generic.card import CardColor
 
-from codenames_parser.color_map.consts import CODENAMES_COLORS
+from codenames_parser.color_map.color_translator import get_board_colors
 from codenames_parser.color_map.mask import color_distance_mask
 from codenames_parser.common.debug_util import SEPARATOR, draw_boxes
 from codenames_parser.common.grid_detection import (
@@ -20,10 +22,10 @@ log = logging.getLogger(__name__)
 
 
 # pylint: disable=R0801
-def extract_cells(image: np.ndarray) -> list[np.ndarray]:
+def extract_cells(image: np.ndarray, color_type: Type[CardColor]) -> list[np.ndarray]:
     log.info(SEPARATOR)
     log.info("Extracting color cells...")
-    card_boxes = find_color_boxes(image)
+    card_boxes = find_color_boxes(image, color_type=color_type)
     deduplicated_boxes = deduplicate_boxes(boxes=card_boxes)
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
     all_card_boxes = _complete_missing_boxes(deduplicated_boxes)
@@ -32,8 +34,9 @@ def extract_cells(image: np.ndarray) -> list[np.ndarray]:
     return grid
 
 
-def find_color_boxes(image: np.ndarray) -> list[Box]:
-    masks = [color_distance_mask(image, color=color) for color in CODENAMES_COLORS]
+def find_color_boxes(image: np.ndarray, color_type: Type[CardColor]) -> list[Box]:
+    board_colors = get_board_colors(color_type=color_type)
+    masks = [color_distance_mask(image, color=color) for color in board_colors]
     boxes = []
     for mask in masks:
         color_boxes = find_boxes(image=mask.filtered_negative)
