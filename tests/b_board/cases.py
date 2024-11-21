@@ -92,6 +92,34 @@ BOARD_3_WORDS = [
     "אופק",
 ]
 
+BOARD_4_WORDS = [
+    "מצנח",
+    "חור",
+    "לפיד",
+    "גנב",
+    "קניון",
+    "ריקוד",
+    "חתול",
+    "אריה",
+    "אופרה",
+    "איצטדיון",
+    "מזלג",
+    "כוכב",
+    "מרגל",
+    "פעמון",
+    "אביר",
+    "גמד",
+    "קוד",
+    "נייר",
+    "מצרים",
+    "מעגל",
+    "ציפורן",
+    "קשת",
+    "מכסה",
+    "חוף",
+    "עשב",
+]
+
 BOARD1_CASE = ParseBoardTestCase(
     fixture_file="board1.jpg",
     language="heb",
@@ -136,4 +164,11 @@ BOARD3_TOP2_CASE = ParseBoardTestCase(
     language="heb",
     expected_words=BOARD_3_WORDS,
     allowed_errors=2,
+)
+
+BOARD4_TOP_CASE = ParseBoardTestCase(
+    fixture_file="board4_top.png",
+    language="heb",
+    expected_words=BOARD_4_WORDS,
+    allowed_errors=5,
 )

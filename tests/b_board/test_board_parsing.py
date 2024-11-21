@@ -14,6 +14,7 @@ from tests.b_board.cases import (
     BOARD3_TILT_CASE,
     BOARD3_TOP2_CASE,
     BOARD3_TOP_CASE,
+    BOARD4_TOP_CASE,
     ParseBoardTestCase,
 )
 from tests.fixtures import get_fixture_path
@@ -61,3 +62,7 @@ def test_parse_board_case_3_top():
 
 def test_parse_board_case_3_top2():
     _test_parse_board(BOARD3_TOP2_CASE)
+
+
+def test_parse_board_case_4_top():
+    _test_parse_board(BOARD4_TOP_CASE)
