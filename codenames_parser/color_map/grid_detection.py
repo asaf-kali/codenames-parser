@@ -1,5 +1,4 @@
 import logging
-from typing import Type
 
 import numpy as np
 from codenames.generic.card import CardColor
@@ -22,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 # pylint: disable=R0801
-def extract_cells(image: np.ndarray, color_type: Type[CardColor]) -> list[np.ndarray]:
+def extract_cells(image: np.ndarray, color_type: type[CardColor]) -> list[np.ndarray]:
     log.info(SEPARATOR)
     log.info("Extracting color cells...")
     card_boxes = find_color_boxes(image, color_type=color_type)
@@ -34,7 +33,7 @@ def extract_cells(image: np.ndarray, color_type: Type[CardColor]) -> list[np.nda
     return grid
 
 
-def find_color_boxes(image: np.ndarray, color_type: Type[CardColor]) -> list[Box]:
+def find_color_boxes(image: np.ndarray, color_type: type[CardColor]) -> list[Box]:
     board_colors = get_board_colors(color_type=color_type)
     masks = [color_distance_mask(image, color=color) for color in board_colors]
     boxes = []

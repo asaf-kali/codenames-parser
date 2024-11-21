@@ -1,6 +1,5 @@
 import sys
 from dataclasses import dataclass
-from typing import Type
 
 from codenames.classic.color import ClassicColor
 from codenames.duet.card import DuetColor
@@ -17,7 +16,7 @@ from codenames_parser.common.logging import configure_logging
 @dataclass
 class ParseColorMapArgs:
     image_path: str
-    color_type: Type[CardColor]
+    color_type: type[CardColor]
 
 
 def entrypoint():
@@ -45,7 +44,7 @@ def _parse_args() -> ParseColorMapArgs:
     return ParseColorMapArgs(image_path=image_path, color_type=color_type)
 
 
-def _parse_color_type(game_type_arg: str) -> Type[CardColor]:
+def _parse_color_type(game_type_arg: str) -> type[CardColor]:
     game_type = GameType[game_type_arg.upper()]
     if game_type == GameType.CLASSIC:
         return ClassicColor

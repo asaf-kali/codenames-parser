@@ -1,5 +1,4 @@
 import logging
-from typing import Type
 
 import numpy as np
 from codenames.generic.card import CardColor
@@ -14,7 +13,7 @@ from codenames_parser.common.debug_util import SEPARATOR
 log = logging.getLogger(__name__)
 
 
-def classify_cell_colors[C: CardColor](cells: list[np.ndarray], color_type: Type[C]) -> list[C]:
+def classify_cell_colors[C: CardColor](cells: list[np.ndarray], color_type: type[C]) -> list[C]:
     """
     Classifies the color of each cell by clustering their average colors.
     """

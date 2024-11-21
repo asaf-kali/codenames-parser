@@ -1,5 +1,3 @@
-from typing import Type
-
 from codenames.classic.color import ClassicColor
 from codenames.duet.card import DuetColor
 from codenames.generic.card import CardColor
@@ -31,7 +29,7 @@ CARD_COLOR_TO_COLOR_DUET: dict[DuetColor, Color] = {
 }
 
 
-def get_color_translator(color_type: Type[CardColor]) -> ColorTranslator:
+def get_color_translator(color_type: type[CardColor]) -> ColorTranslator:
     if color_type == ClassicColor:
         return CARD_COLOR_TO_COLOR_CLASSIC
     if color_type == DuetColor:
@@ -39,7 +37,7 @@ def get_color_translator(color_type: Type[CardColor]) -> ColorTranslator:
     raise NotImplementedError(f"Unsupported color type: {color_type}")
 
 
-def get_board_colors(color_type: Type[CardColor]) -> list[Color]:
+def get_board_colors(color_type: type[CardColor]) -> list[Color]:
     if color_type == ClassicColor:
         return CODENAMES_COLORS_CLASSIC
     if color_type == DuetColor:
