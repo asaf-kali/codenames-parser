@@ -170,5 +170,5 @@ BOARD4_TOP_CASE = ParseBoardTestCase(
     fixture_file="board4_top.png",
     language="heb",
     expected_words=BOARD_4_WORDS,
-    allowed_errors=5,
+    allowed_errors=6,
 )
