@@ -36,6 +36,9 @@ class Point(Sequence[int]):
     def __str__(self):
         return f"({self.x:.0f}, {self.y:.0f})"
 
+    def distance(self, other: "Point") -> float:
+        return float(np.linalg.norm(self - other))
+
 
 @dataclass
 class Size(Sequence[int]):
@@ -65,6 +68,9 @@ class Box:
     y: int
     w: int
     h: int
+
+    def __hash__(self) -> int:
+        return hash((self.x, self.y, self.w, self.h))
 
     @property
     def x_min(self) -> int:
@@ -100,6 +106,21 @@ class Box:
 
     def center_distance(self, other: "Box") -> float:
         return float(np.linalg.norm(self.center - other.center))
+
+    def overlaps(self, other: "Box") -> bool:
+        return (
+            self.x_min < other.x_max
+            and self.x_max > other.x_min
+            and self.y_min < other.y_max
+            and self.y_max > other.y_min
+        )
+
+    def intersection(self, other: "Box") -> "Box":
+        x_min = max(self.x_min, other.x_min)
+        y_min = max(self.y_min, other.y_min)
+        x_max = min(self.x_max, other.x_max)
+        y_max = min(self.y_max, other.y_max)
+        return Box(x=x_min, y=y_min, w=x_max - x_min, h=y_max - y_min)
 
 
 @dataclass

@@ -17,7 +17,7 @@ GRID_SIZE = GRID_WIDTH * GRID_HEIGHT
 
 
 def find_boxes(
-    image: np.ndarray, expected_ratio: float = 1, max_ratio_diff: float = 0.2, min_size: int = 10
+    image: np.ndarray, expected_ratio: float = 1, max_ratio_diff: float = 0.2, min_size: int = 15
 ) -> list[Box]:
     ratio_max = expected_ratio + max_ratio_diff
     ratio_min = expected_ratio - max_ratio_diff
