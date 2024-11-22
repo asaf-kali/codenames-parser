@@ -1,5 +1,14 @@
 # Codenames Parser
 
+[![PyPI version](https://badge.fury.io/py/codenames-parser.svg)](https://badge.fury.io/py/codenames-parser)
+[![Pipeline](https://github.com/asaf-kali/codenames-parser/actions/workflows/pipeline.yml/badge.svg)](https://github.com/asaf-kali/codenames-parser/actions/workflows/pipeline.yml)
+[![codecov](https://codecov.io/github/asaf-kali/codenames-parser/graph/badge.svg?token=HET5E8P1UK)](https://codecov.io/github/asaf-kali/codenames-parser)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-111111.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/imports-isort-%231674b1)](https://pycqa.github.io/isort/)
+[![Type checked: mypy](https://img.shields.io/badge/type%20check-mypy-22aa11)](http://mypy-lang.org/)
+[![Linting: pylint](https://img.shields.io/badge/linting-pylint-22aa11)](https://github.com/pylint-dev/pylint)
+
 A Python package to parse Codenames game boards from images.\
 Before we dive in, here are some examples:
 
@@ -71,6 +80,10 @@ Some parsing logs...
 
 \* It looks as if the direction of the board is flipped.
 This is a bug due to Hebrew being written from right to left, the list order is correct.
+
+## Installation
+
+`pip install codenames-parser`
 
 ### OCR
 
