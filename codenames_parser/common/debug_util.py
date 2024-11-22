@@ -11,7 +11,12 @@ import numpy as np
 
 from codenames_parser.common.models import P1P2, Box, Color, Line, Point
 
+# Environment variables
 DEBUG_ENV_VAR = "SAVE_DEBUG_IMAGES"
+OUTPUT_DIR_ENV_VAR = "DEBUG_OUTPUT_DIR"
+RUN_ID_ENV_VAR = "RUN_ID"
+
+# Constants
 DEFAULT_RUN_ID = 9999999999 - int(time.time())
 LINE_DRAW_SIZE = 1000
 BOX_COLOR = (0, 255, 0)
@@ -25,6 +30,14 @@ log = logging.getLogger(__name__)
 
 def set_save_debug_images(enabled: bool) -> None:
     os.environ[DEBUG_ENV_VAR] = str(enabled).lower()
+
+
+def set_debug_output_dir(output_dir: str) -> None:
+    os.environ[OUTPUT_DIR_ENV_VAR] = output_dir
+
+
+def set_run_id(run_id: str) -> None:
+    os.environ[RUN_ID_ENV_VAR] = run_id
 
 
 def set_debug_context(context: str) -> None:
@@ -128,8 +141,8 @@ def draw_points(image: np.ndarray, points: Sequence[Point], title: str, radius: 
 
 
 def _get_folder(important: bool) -> str:
-    debug_dir = os.getenv("DEBUG_OUTPUT_DIR", "debug")
-    run_id = os.getenv("RUN_ID", str(DEFAULT_RUN_ID))
+    debug_dir = os.getenv(OUTPUT_DIR_ENV_VAR, "debug")
+    run_id = os.getenv(RUN_ID_ENV_VAR, str(DEFAULT_RUN_ID))
     run_dir = os.path.join(debug_dir, run_id)
     if important:
         run_dir = os.path.join(run_dir, "\x20important")
@@ -164,4 +177,4 @@ def _pick_line_color(line: Line) -> Color:
 
 
 def _is_debug_enabled() -> bool:
-    return os.getenv(DEBUG_ENV_VAR, "false").lower() in ["true", "1"]
+    return os.getenv(DEBUG_ENV_VAR, "true").lower() in ["true", "1"]

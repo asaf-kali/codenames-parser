@@ -40,12 +40,12 @@ def resize_image(image: np.ndarray, dst_width: int | None = None, dst_height: in
     return resized
 
 
-def downsample_image(image: np.ndarray, factor: int) -> np.ndarray:
+def downsample_image(image: np.ndarray, factor: float) -> np.ndarray:
     """Downsample the image by the given factor.
 
     Args:
         image (np.ndarray): Input image.
-        factor (int): Downsampling factor.
+        factor (float): Downsampling factor.
 
     Returns:
         np.ndarray: Downsampled image.

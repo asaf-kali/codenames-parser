@@ -7,7 +7,6 @@ from codenames.generic.card import CardColor
 from codenames.utils.game_type import GameType
 
 from codenames_parser.color_map.color_map_parser import parse_color_map
-from codenames_parser.common.debug_util import set_save_debug_images
 from codenames_parser.common.grid_detection import GRID_WIDTH
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.logging import configure_logging
@@ -19,12 +18,8 @@ class ParseColorMapArgs:
     color_type: type[CardColor]
 
 
-def entrypoint():
+def entrypoint() -> list[CardColor]:
     configure_logging()
-    if len(sys.argv) != 3:
-        print(f"Usage: python {sys.argv[0]} <image_path> <color_type>")
-        sys.exit(1)
-    set_save_debug_images(enabled=True)
     # Parse arguments
     args = _parse_args()
     # Parse color map
@@ -32,11 +27,12 @@ def entrypoint():
     map_colors = parse_color_map(image, color_type=args.color_type)
     # Print result
     _print_result(map_colors)
+    return map_colors
 
 
 def _parse_args() -> ParseColorMapArgs:
     if len(sys.argv) != 3:
-        print(f"Usage: python {sys.argv[0]} <image_path> <game_type>")
+        print(f"Usage: python {sys.argv[0]} <image_path> <color_type>")
         sys.exit(1)
     image_path = sys.argv[1]
     game_type = sys.argv[2]

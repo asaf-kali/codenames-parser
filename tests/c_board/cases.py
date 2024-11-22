@@ -6,6 +6,7 @@ class ParseBoardTestCase(NamedTuple):
     language: str
     expected_words: list[str]
     allowed_errors: int = 1
+    downsample_factor: float = 1
 
 
 BOARD_1_WORDS = [
@@ -131,6 +132,14 @@ BOARD1_TOP_CASE = ParseBoardTestCase(
     language="heb",
     expected_words=BOARD_1_WORDS,
     allowed_errors=0,
+)
+
+BOARD1_TOP_SMALL_CASE = ParseBoardTestCase(
+    fixture_file="board1_top.jpg",
+    language="heb",
+    expected_words=BOARD_1_WORDS,
+    downsample_factor=3,
+    allowed_errors=3,
 )
 
 BOARD2_CASE = ParseBoardTestCase(

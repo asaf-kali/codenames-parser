@@ -6,7 +6,6 @@ from codenames.generic.board import Board
 from codenames.generic.card import Card
 
 from codenames_parser.board.board_parser import parse_board
-from codenames_parser.common.debug_util import set_save_debug_images
 from codenames_parser.common.image_reader import read_image
 from codenames_parser.common.logging import configure_logging
 
@@ -17,9 +16,8 @@ class ParseBoardArgs:
     language: str
 
 
-def entrypoint():
+def entrypoint() -> list[str]:
     configure_logging()
-    set_save_debug_images(enabled=True)
     # Parse arguments
     args = _parse_args()
     image = read_image(args.image_path)
@@ -27,6 +25,7 @@ def entrypoint():
     words = parse_board(image, language=args.language)
     # Print result
     _print_words(words=words)
+    return words
 
 
 def _parse_args() -> ParseBoardArgs:

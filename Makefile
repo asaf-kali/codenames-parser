@@ -48,13 +48,13 @@ lock-check:
 # Test
 
 test:
-	python -m $(PYTHON_TEST_COMMAND)
+	python -m $(PYTHON_TEST_COMMAND) $(PYTEST_EXTRA)
 
 test-fast:
-	python -m $(PYTHON_TEST_COMMAND)
+	@make test PYTEST_EXTRA="-m 'not slow'"
 
 cover-base:
-	coverage run -m $(PYTHON_TEST_COMMAND)
+	coverage run -m $(PYTHON_TEST_COMMAND) $(PYTEST_EXTRA)
 
 cover-xml: cover-base
 	coverage xml
@@ -65,6 +65,9 @@ cover-html: cover-base
 cover: cover-html
 	$(OPEN_FILE_COMMAND) htmlcov/index.html &
 	$(DEL_COMMAND) .coverage*
+
+cover-fast:
+	@make cover PYTEST_EXTRA="-m 'not slow'"
 
 # Packaging
 
