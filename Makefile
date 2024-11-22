@@ -35,7 +35,7 @@ install-dev: upgrade-pip
 	poetry install --all-extras	$(SYNC)
 	pre-commit install
 
-install: lock-check install-dev lint cover
+install: lock-check install-dev lint cover-fast
 
 # Poetry
 
@@ -55,6 +55,7 @@ test-fast:
 
 cover-base:
 	coverage run -m $(PYTHON_TEST_COMMAND) $(PYTEST_EXTRA)
+	coverage report
 
 cover-xml: cover-base
 	coverage xml

@@ -69,6 +69,9 @@ Some parsing logs...
 ]
 ```
 
+\* It looks as if the direction of the board is flipped.
+This is a bug due to Hebrew being written from right to left, the list order is correct.
+
 ### OCR
 
 1. Uses `pytesseract` to extract text from images.

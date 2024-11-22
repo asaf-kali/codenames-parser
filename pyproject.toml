@@ -2,7 +2,7 @@
 
 [tool.poetry]
 name = "codenames-parser"
-version = "1.0.0"
+version = "0.1.0"
 description = "Codenames board game pictures parsers."
 authors = ["Asaf Kali <asaf.kali@mail.huji.ac.il>"]
 readme = "README.md"
@@ -45,8 +45,8 @@ types-requests = "^2.32.0.20241016"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.2.2"
-twine = "^4.0.2"
-python-semantic-release = "^8.0.8"
+twine = "^5.1"
+python-semantic-release = "^9.0"
 
 [build-system]
 requires = ["poetry-core"]
