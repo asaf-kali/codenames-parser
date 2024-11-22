@@ -1,7 +1,20 @@
 # CHANGELOG
 
 
+## v1.0.2 (2024-11-22)
+
+### 🛠️
+
+- 🛠️ Add py.typed file
+  ([`a417bf4`](https://github.com/asaf-kali/codenames-parser/commit/a417bf425d921672847f7390c64c2f66c4c80320))
+
+
 ## v1.0.1 (2024-11-22)
+
+### Other
+
+- 🤖 Release [1.0.1] [skip ci]
+  ([`a0f5b43`](https://github.com/asaf-kali/codenames-parser/commit/a0f5b4309218d5d53eceef02c14657be61ff82a1))
 
 ### 🌴
 
@@ -18,9 +31,6 @@
 
 - ⛵️ Add CI pipeline
   ([`8cdac38`](https://github.com/asaf-kali/codenames-parser/commit/8cdac381f5cfc52502367f09640246b50a216591))
-
-- 🏖️ Coverage fixes, add entrypoint tests
-  ([`8a1e803`](https://github.com/asaf-kali/codenames-parser/commit/8a1e803208884f7ba09001a145b1da5703e73983))
 
 - 🤓 Smarter way to complete missing boxes and ignore outliers
   ([`2dbd643`](https://github.com/asaf-kali/codenames-parser/commit/2dbd643c72d5b8725f8d607c7a82762ab8367935))
@@ -424,6 +434,11 @@
 
 - 🎉 Add CI release
   ([`4b213e4`](https://github.com/asaf-kali/codenames-parser/commit/4b213e4e86fe6cd624b02bfbb399fa51055a26a9))
+
+### 🏖️
+
+- 🏖️ Coverage fixes, add entrypoint tests
+  ([`8a1e803`](https://github.com/asaf-kali/codenames-parser/commit/8a1e803208884f7ba09001a145b1da5703e73983))
 
 ### 🐛
 
