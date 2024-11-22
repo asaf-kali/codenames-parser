@@ -1,9 +1,20 @@
 # CHANGELOG
 
 
+## v1.0.1 (2024-11-22)
+
+### 🌴
+
+- 🌴 README: add badges, fix release
+  ([`1cd5c2a`](https://github.com/asaf-kali/codenames-parser/commit/1cd5c2a647a61505983a514d439f3867b7af1fc4))
+
+
 ## v1.0.0 (2024-11-22)
 
 ### Other
+
+- 🤖 Release [1.0.0] [skip ci]
+  ([`ed50aee`](https://github.com/asaf-kali/codenames-parser/commit/ed50aeedefd5537a4e50a04d71e5e117ddde8589))
 
 - ⛵️ Add CI pipeline
   ([`8cdac38`](https://github.com/asaf-kali/codenames-parser/commit/8cdac381f5cfc52502367f09640246b50a216591))
