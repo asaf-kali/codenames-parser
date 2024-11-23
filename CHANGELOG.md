@@ -1,7 +1,20 @@
 # CHANGELOG
 
 
+## v1.0.3 (2024-11-23)
+
+### 🐛
+
+- 🐛 Git lfs fix
+  ([`629ac71`](https://github.com/asaf-kali/codenames-parser/commit/629ac714f16b819e501d2de2b8040c35078bb923))
+
+
 ## v1.0.2 (2024-11-22)
+
+### Other
+
+- 🤖 Release [1.0.2] [skip ci]
+  ([`7d1d12d`](https://github.com/asaf-kali/codenames-parser/commit/7d1d12d7a51359db19d93990bcbc82f39358d3c0))
 
 ### 🛠️
 
