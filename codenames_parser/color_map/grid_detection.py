@@ -5,6 +5,7 @@ import numpy as np
 from codenames.duet.card import DuetColor
 from codenames.generic.card import CardColor
 
+from codenames_parser.board.grid_detection import is_legal_grid
 from codenames_parser.color_map.color_translator import get_board_colors
 from codenames_parser.color_map.mask import color_distance_mask
 from codenames_parser.common.impr.align import detect_edges
@@ -53,11 +54,11 @@ def extract_cells(image: np.ndarray, color_type: type[CardColor]) -> list[np.nda
 
 def _find_color_boxes(image: np.ndarray, color_type: type[CardColor]) -> list[Box]:
     board_colors = get_board_colors(color_type=color_type)
-    masks = [color_distance_mask(image, color=color) for color in board_colors]
+    ngatives = [color_distance_mask(image, color=color) for color in board_colors]
     boxes = []
     expected_ratio = _get_expected_color_box_ratio(color_type=color_type)
-    for mask in masks:
-        edges = detect_edges(mask.filtered_negative)
+    for negative in ngatives:
+        edges = detect_edges(negative)
         color_boxes = find_boxes(image=edges, expected_ratio=expected_ratio)
         draw_boxes(image, boxes=color_boxes, title="color boxes")
         boxes.extend(color_boxes)
@@ -111,7 +112,7 @@ def _detect_all_boxes(image: np.ndarray, boxes: list[Box], distances: CenterDist
     for i in range(len(boxes) - 4):
         all_boxes = _complete_missing_boxes(boxes=boxes[i:])
         draw_boxes(image, boxes=all_boxes, title=f"all boxes iter {i + 1}")
-        if not _is_legal_grid(boxes=all_boxes):
+        if not is_legal_grid(boxes=all_boxes):
             break
         area_fit = _calculate_area_fit(boxes=boxes, all_boxes=all_boxes)
         grid_fit = GridFit(grid=all_boxes, area_fit=area_fit)
@@ -144,20 +145,6 @@ def _calculate_area_fit(boxes: list[Box], all_boxes: list[Box]) -> float:
             total_area += intersection.area
     fit_ratio = total_area / boxes_total
     return fit_ratio
-
-
-def _is_legal_grid(boxes: list[Box]) -> bool:
-    """
-    Check if the grid is legal by checking if there are intersections between boxes.
-    Assume boxes are exactly the same size, and in constant distances.
-    """
-    for i, box1 in enumerate(boxes):
-        for j, box2 in enumerate(boxes):
-            if i == j:
-                continue
-            if box1.overlaps(other=box2):
-                return False
-    return True
 
 
 def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:

@@ -50,6 +50,16 @@ def _parse_card(i: int, image: np.ndarray, language: str, card_template: np.ndar
     return text
 
 
+# def _find_text_section(image: np.ndarray) -> np.ndarray:
+#     gray = ensure_grayscale(image)
+#     equalized = equalize_histogram(gray)
+#     quantized = quantize(equalized, k=5)
+#     edges = detect_edges(image=quantized, is_blurred=False, threshold1=200, threshold2=400)
+#     # equalized = contrast_limit_equalization(gray, clip_limit=2.0)
+#     text_section = _text_section_crop(equalized)
+#     return text_section
+
+
 def _text_section_crop(card: np.ndarray) -> np.ndarray:
     # Example:
     # size = 500x324

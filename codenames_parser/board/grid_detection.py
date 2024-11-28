@@ -1,12 +1,11 @@
 import logging
 from dataclasses import dataclass
 
-import cv2
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from codenames_parser.color_map.mask import color_distance_mask
-from codenames_parser.common.impr.align import blur_image
+from codenames_parser.color_map.mask import apply_mask, color_distance_negative
+from codenames_parser.common.impr.equalization import contrast_limit_equalization
 from codenames_parser.common.impr.grid_detection import (
     GRID_HEIGHT,
     GRID_SIZE,
@@ -15,11 +14,7 @@ from codenames_parser.common.impr.grid_detection import (
     filter_non_common_boxes,
     find_boxes,
 )
-from codenames_parser.common.utils.debug_util import (
-    SEPARATOR,
-    draw_boxes,
-    save_debug_image,
-)
+from codenames_parser.common.utils.debug_util import SEPARATOR, draw_boxes
 from codenames_parser.common.utils.errors import (
     GridExtractionFailedError,
     NotEnoughBoxesError,
@@ -31,7 +26,7 @@ log = logging.getLogger(__name__)
 WHITE = Color(255, 255, 255)
 CARD_RATIO = 1.55
 UNCERTAIN_BOX_FACTOR = 1.1
-COLOR_MASK_PERCENTILES = [80, 75, 70, 65, 60, 50]
+COLOR_MASK_PERCENTILES = [80, 70, 60, 50]
 
 
 @dataclass
@@ -40,35 +35,50 @@ class RowColIndices:
     col: list[int]
 
 
+@dataclass
+class ExtractCellsIterationResult:
+    cells: list[Box]
+    detected_count: int
+
+
 def extract_boxes(image: np.ndarray) -> list[Box]:
     log.info(SEPARATOR)
     log.info("Extracting card cells...")
+    results = []
+    negative = color_distance_negative(image, color=WHITE)
+    negative_image = (255 * negative).astype(np.uint8)
+    equalized = contrast_limit_equalization(negative_image)
     for percentile in COLOR_MASK_PERCENTILES:
-        log.info(f"Trying with percentile {percentile}")
+        log.info(f"Trying with percentile [{percentile}]")
         try:
-            return _extract_cells_iteration(image, color_mask_percentile=percentile)
+            result = _extract_cells_iteration(equalized, negative=negative, color_mask_percentile=percentile)
+            results.append(result)
         except NotEnoughBoxesError:
-            log.info(SEPARATOR)
-            log.info("Not enough boxes to complete the grid, trying with a lower color mask percentile")
-    log.error("Failed to extract card cells")
-    raise GridExtractionFailedError()
+            log.info(f"Not enough boxes to complete the grid with percentile [{percentile}]")
+    if not results:
+        raise GridExtractionFailedError()
+    best_result = max(results, key=lambda r: r.detected_count)
+    return best_result.cells
 
 
-def _extract_cells_iteration(image: np.ndarray, color_mask_percentile: int) -> list[Box]:
-    card_boxes = find_card_boxes(image, percentile=color_mask_percentile)
-    deduplicated_boxes = deduplicate_boxes(boxes=card_boxes)
+def _extract_cells_iteration(
+    image: np.ndarray, negative: np.ndarray, color_mask_percentile: int
+) -> ExtractCellsIterationResult:
+    detected_boxes = detect_card_boxes(image, negative=negative, percentile=color_mask_percentile)
+    deduplicated_boxes = deduplicate_boxes(boxes=detected_boxes)
     draw_boxes(image, boxes=deduplicated_boxes, title="boxes deduplicated")
     complete_card_boxes = _complete_missing_boxes(deduplicated_boxes)
+    # if not is_legal_grid(complete_card_boxes):
+    #     raise NotEnoughBoxesError("The output grid is not legal")
     draw_boxes(image, boxes=complete_card_boxes, title=f"{GRID_SIZE} boxes")
-    return complete_card_boxes
+    return ExtractCellsIterationResult(cells=complete_card_boxes, detected_count=len(deduplicated_boxes))
 
 
-def find_card_boxes(image: np.ndarray, percentile: int) -> list[Box]:
-    blurred = blur_image(image)
-    equalized = cv2.equalizeHist(blurred)
-    save_debug_image(equalized, title="equalized")
-    color_distance = color_distance_mask(image, color=WHITE, percentile=percentile)
-    boxes = find_boxes(image=color_distance.filtered_negative, expected_ratio=CARD_RATIO, max_ratio_diff=0.3)
+def detect_card_boxes(image: np.ndarray, negative: np.ndarray, percentile: int) -> list[Box]:
+    threshold = np.percentile(negative, q=percentile)
+    mask = negative > threshold
+    filtered = apply_mask(image, mask=mask)
+    boxes = find_boxes(image=filtered, expected_ratio=CARD_RATIO, max_ratio_diff=0.3)
     draw_boxes(image, boxes=boxes, title="boxes raw")
     card_boxes = filter_non_common_boxes(boxes)
     draw_boxes(image, boxes=card_boxes, title="boxes filtered")
@@ -177,3 +187,17 @@ def _get_row_col_indices(box_index: int) -> RowColIndices:
     for i in range(GRID_WIDTH):
         row_indices.append(row * GRID_WIDTH + i)
     return RowColIndices(row=row_indices, col=col_indices)
+
+
+def is_legal_grid(boxes: list[Box]) -> bool:
+    """
+    Check if the grid is legal by checking if there are intersections between boxes.
+    Assume boxes are exactly the same size, and in constant distances.
+    """
+    for i, box1 in enumerate(boxes):
+        for j, box2 in enumerate(boxes):
+            if i == j:
+                continue
+            if box1.overlaps(other=box2):
+                return False
+    return True
