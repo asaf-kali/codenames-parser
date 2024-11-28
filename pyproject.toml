@@ -2,7 +2,7 @@
 
 [tool.poetry]
 name = "codenames-parser"
-version = "1.0.3"
+version = "1.0.4"
 description = "Codenames board game pictures parsers."
 authors = ["Asaf Kali <asaf.kali@mail.huji.ac.il>"]
 readme = "README.md"

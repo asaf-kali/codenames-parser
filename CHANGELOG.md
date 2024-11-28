@@ -1,7 +1,20 @@
 # CHANGELOG
 
 
+## v1.0.4 (2024-11-28)
+
+### 🎡
+
+- 🎡 Refactor project common structure
+  ([`7b2a089`](https://github.com/asaf-kali/codenames-parser/commit/7b2a08918fb8ac6b5fe2d9353f5b809062499b97))
+
+
 ## v1.0.3 (2024-11-23)
+
+### Other
+
+- 🤖 Release [1.0.3] [skip ci]
+  ([`5270e38`](https://github.com/asaf-kali/codenames-parser/commit/5270e38cc44f9874be30d22fd6feceb357f6aa69))
 
 ### 🐛
 
