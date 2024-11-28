@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 WHITE = Color(255, 255, 255)
 CARD_RATIO = 1.55
-UNCERTAIN_BOX_FACTOR = 1.1
+UNCERTAIN_BOX_FACTOR = 1.25
 COLOR_MASK_PERCENTILES = [80, 70, 60, 50]
 
 
@@ -85,7 +85,7 @@ def detect_card_boxes(image: np.ndarray, negative: np.ndarray, percentile: int) 
     return card_boxes
 
 
-def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
+def _complete_missing_boxes(boxes: list[Box], uncertain_box_factor: float = UNCERTAIN_BOX_FACTOR) -> list[Box]:
     """
     Complete missing boxes in the list to reach the expected GRID_SIZE.
     Boxes might not be exactly aligned in a grid, so we can't assume constant row and column sizes.
@@ -130,8 +130,8 @@ def _complete_missing_boxes(boxes: list[Box]) -> list[Box]:
 
     # Map the assignments
     grid_positions = _predict_missing_boxes_centers(assigned_boxes=assigned_boxes, grid_positions=grid_positions)
-    width_uncertain = average_width * UNCERTAIN_BOX_FACTOR
-    height_uncertain = average_height * UNCERTAIN_BOX_FACTOR
+    width_uncertain = average_width * uncertain_box_factor
+    height_uncertain = average_height * uncertain_box_factor
     width_offset = (width_uncertain - average_width) / 2
     height_offset = (height_uncertain - average_height) / 2
 
