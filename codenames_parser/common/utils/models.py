@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-from typing import Iterable, Iterator, NamedTuple, Sequence, TypeVar
+from typing import Iterable, Iterator, NamedTuple, Sequence
 
 import numpy as np
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -60,6 +58,20 @@ class Size(Sequence[int]):
 
     def __str__(self):
         return f"({self.width}, {self.height})"
+
+
+@dataclass
+class Circle:
+    center: Point
+    radius: float
+
+    @classmethod
+    def from_cv2(cls, circle: np.ndarray) -> "Circle":
+        x, y, r = circle
+        return cls(center=Point(int(x), int(y)), radius=round(r, 4))
+
+    def __hash__(self) -> int:
+        return hash((self.center, self.radius))
 
 
 @dataclass
@@ -136,6 +148,19 @@ class P1P2(NamedTuple):
 class Line(NamedTuple):
     rho: float  # distance from the origin
     theta: float  # angle in radians
+
+    @classmethod
+    def from_cv2(cls, line: np.ndarray) -> "Line":
+        rho, theta = line[0]
+        return cls(rho=rho, theta=theta)
+
+    def perpendicular_distance(self, point: Point) -> float:
+        """
+        Calculate the perpendicular distance from the line to a point
+        """
+        x, y = point.x, point.y
+        distance = abs(x * np.cos(self.theta) + y * np.sin(self.theta) - self.rho)
+        return distance
 
 
 @dataclass

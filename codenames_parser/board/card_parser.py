@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 
+import cv2
 import numpy as np
 import pytesseract
 
@@ -9,55 +10,140 @@ from codenames_parser.board.ocr import (
     fetch_tesseract_language,
     parse_tesseract_data,
 )
-from codenames_parser.board.template_search import search_template
-from codenames_parser.common.impr.color_manipulation import quantize
+from codenames_parser.common.impr.align import (
+    apply_rotation,
+    detect_edges,
+    extract_lines,
+)
+from codenames_parser.common.impr.color_manipulation import ensure_grayscale, quantize
 from codenames_parser.common.impr.crop import crop_by_box
+from codenames_parser.common.impr.equalization import contrast_limit_equalization
 from codenames_parser.common.impr.general import sharpen
-from codenames_parser.common.impr.reader import read_image
 from codenames_parser.common.impr.scale import resize_image
-from codenames_parser.common.resources.resource_manager import get_card_template_path
 from codenames_parser.common.utils.debug_util import (
     SEPARATOR,
     draw_boxes,
+    draw_circles,
+    draw_lines,
     save_debug_image,
     set_debug_context,
 )
-from codenames_parser.common.utils.models import Box, Size
+from codenames_parser.common.utils.models import Box, Circle, Line, Point, Size
 
 log = logging.getLogger(__name__)
+
+CIRCLE_PARAMS = [0.9, 0.85, 0.8, 0.7, 0.6]
+RHO_SEARCH_FACTOR = 1.25
 
 
 def parse_cards(cells: list[np.ndarray], language: str) -> list[str]:
     cards = []
-    card_template = read_image(get_card_template_path())
     for i, cell in enumerate(cells):
-        set_debug_context(f"card {i}")
-        log.info(f"\n{SEPARATOR}")
-        log.info(f"Processing card {i}")
-        card = _parse_card(i=i, image=cell, language=language, card_template=card_template)
+        try:
+            card = _parse_card(i=i, image=cell, language=language)
+        except Exception as e:
+            log.exception(f"Failed to parse card {i}: {e}")
+            card = ""
         cards.append(card)
     return cards
 
 
-def _parse_card(i: int, image: np.ndarray, language: str, card_template: np.ndarray) -> str:
-    save_debug_image(image, title="original card")
-    actual_card = search_template(source=image, template=card_template)
-    save_debug_image(actual_card, title=f"copped card {i}")
-    text_section = _text_section_crop(actual_card)
+def _parse_card(i: int, image: np.ndarray, language: str) -> str:
+    log.info(f"\n{SEPARATOR}")
+    log.info(f"Processing card {i}")
+    set_debug_context(f"card {i}")
+    save_debug_image(image, title=f"original card {i}")
+    text_section = _find_text_section(image)
     text_section_processed = _process_text_section(text_section)
     text = _extract_text(text_section_processed, language=language)
-    # save_debug_image(text_section, title=f"text section: {text}", important=True)
     return text
 
 
-# def _find_text_section(image: np.ndarray) -> np.ndarray:
-#     gray = ensure_grayscale(image)
-#     equalized = equalize_histogram(gray)
-#     quantized = quantize(equalized, k=5)
-#     edges = detect_edges(image=quantized, is_blurred=False, threshold1=200, threshold2=400)
-#     # equalized = contrast_limit_equalization(gray, clip_limit=2.0)
-#     text_section = _text_section_crop(equalized)
-#     return text_section
+def _find_first_horizontal_line_above_circle(image: np.ndarray, circle: Circle) -> Line:
+    log.debug("Finding first horizontal line above circle...")
+    top = max(0, int(circle.center.y - circle.radius * 2))
+    bottom = int(circle.center.y + circle.radius)
+    left = int(circle.center.x - circle.radius * 8)
+    right = int(circle.center.x + circle.radius * 8)
+    box = Box(x=left, y=top, w=right - left, h=bottom - top)
+    cropped = crop_by_box(image, box=box)
+    lines = _search_for_lines(cropped, min_count=1, max_count=3)
+    log.info(f"Found {len(lines)} lines")
+    draw_lines(image=cropped, lines=lines, title="lines above circle")
+    avg_theta = sum(line.theta for line in lines) / len(lines)
+    return Line(rho=0, theta=avg_theta)
+
+
+def _search_for_lines(image: np.ndarray, min_count: int, max_count: int) -> list[Line]:
+    edges = detect_edges(image=image, is_blurred=False, threshold1=20, threshold2=100)
+    rho = 1.0
+    for _ in range(10):
+        lines = extract_lines(edges, rho=rho)
+        log.info(f"Found {len(lines)} lines with rho {rho}")
+        if min_count <= len(lines) <= max_count:
+            return lines
+        if len(lines) < min_count:
+            rho *= RHO_SEARCH_FACTOR
+        else:
+            rho /= RHO_SEARCH_FACTOR
+    raise ValueError("Failed to find lines")
+
+
+def _find_text_section(image: np.ndarray) -> np.ndarray:
+    gray = ensure_grayscale(image)
+    # Find top circle
+    top_circle = _find_top_circle(gray)
+    # Find rotation angle
+    equalized = contrast_limit_equalization(image=image)
+    top_line = _find_first_horizontal_line_above_circle(equalized, circle=top_circle)
+    rotation_angle = np.rad2deg(top_line.theta) - 90
+    log.debug(f"Card rotation angle: {rotation_angle:.2f}")
+    aligned = apply_rotation(image=image, angle_degrees=rotation_angle)
+    save_debug_image(aligned, title="aligned")
+    # Crop out card
+    log.debug("Cropping card...")
+    card_width, card_height = top_circle.radius * 24, top_circle.radius * 15
+    left = int(top_circle.center.x - card_width / 2)
+    top = int(top_circle.center.y - top_circle.radius * 2)
+    card_box = Box(x=left, y=top, w=int(card_width), h=int(card_height))
+    card = crop_by_box(aligned, box=card_box)
+    save_debug_image(card, title="card")
+    text_section = _text_section_crop(card)
+    return text_section
+
+
+def _find_top_circle(image: np.ndarray) -> Circle:
+    circles = _find_top_circles(image)
+    draw_circles(image=image, circles=circles, title="found circles", thickness=1)
+    average_circle = _average_circle(circles)
+    draw_circles(image=image, circles=[average_circle], title="avg circle", thickness=3)
+    return average_circle
+
+
+def _find_top_circles(image: np.ndarray) -> list[Circle]:
+    just_the_top = image[: int(image.shape[0] * 0.33), ...]
+    for param in CIRCLE_PARAMS:
+        hough_circles = cv2.HoughCircles(just_the_top, cv2.HOUGH_GRADIENT_ALT, dp=1, minDist=1, param2=param)
+        circles = _parse_circles(hough_circles)
+        if len(circles) > 1:
+            log.info(f"Found {len(circles)} circle(s) with param {param}")
+            return circles
+        log.info(f"No circles found with param {param}")
+    raise ValueError("No circles found")
+
+
+def _average_circle(circles: list[Circle]) -> Circle:
+    x = sum(circle.center.x for circle in circles) // len(circles)
+    y = sum(circle.center.y for circle in circles) // len(circles)
+    r = sum(circle.radius for circle in circles) // len(circles)
+    return Circle(center=Point(x, y), radius=r)
+
+
+def _parse_circles(circles: np.ndarray | None) -> list[Circle]:
+    if circles is None:
+        return []
+    circles = circles[0]
+    return [Circle.from_cv2(circle) for circle in circles]  # type: ignore[union-attr]
 
 
 def _text_section_crop(card: np.ndarray) -> np.ndarray:

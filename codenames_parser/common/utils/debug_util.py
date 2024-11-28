@@ -9,7 +9,7 @@ from typing import Iterable, Sequence
 import cv2
 import numpy as np
 
-from codenames_parser.common.utils.models import P1P2, Box, Color, Line, Point
+from codenames_parser.common.utils.models import P1P2, Box, Circle, Color, Line, Point
 
 # Environment variables
 DEBUG_ENV_VAR = "SAVE_DEBUG_IMAGES"
@@ -91,6 +91,19 @@ def _get_counter() -> dict:
     return defaultdict(int)
 
 
+def draw_circles(image: np.ndarray, circles: Iterable[Circle], title: str, thickness: int = 2) -> str | None:
+    if not _is_debug_enabled():
+        return None
+    image = image.copy()
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    for circle in circles:
+        center = (int(circle.center.x), int(circle.center.y))
+        radius = int(circle.radius)
+        cv2.circle(image, center, radius, BOX_COLOR, thickness)
+    return save_debug_image(image, title=title)
+
+
 def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: int = 2) -> str | None:
     if not _is_debug_enabled():
         return None
@@ -104,7 +117,7 @@ def draw_boxes(image: np.ndarray, boxes: Iterable[Box], title: str, thickness: i
     return save_debug_image(image, title=title)
 
 
-def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> str | None:
+def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str, thickness: int = 2) -> str | None:
     if not _is_debug_enabled():
         return None
     # If image is grayscale, convert to BGR
@@ -114,7 +127,7 @@ def draw_lines(image: np.ndarray, lines: Iterable[Line], title: str) -> str | No
     for line in lines:
         loc = _get_line_draw_params(line)
         color = _pick_line_color(line)
-        cv2.line(image, loc.p1, loc.p2, color, 2)
+        cv2.line(image, loc.p1, loc.p2, color, thickness=thickness)
     return save_debug_image(image, title=title)
 
 

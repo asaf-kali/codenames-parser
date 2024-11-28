@@ -184,9 +184,5 @@ def extract_lines(edges: np.ndarray, rho: float = 1, theta: float = np.pi / 180,
     hough_lines = cv2.HoughLines(edges, rho=rho, theta=theta, threshold=threshold)
     if hough_lines is None:
         return []
-    lines = []
-    for line in hough_lines:
-        rho, theta = line[0]
-        line = Line(rho, theta)
-        lines.append(line)
+    lines = [Line.from_cv2(line) for line in hough_lines]
     return lines
