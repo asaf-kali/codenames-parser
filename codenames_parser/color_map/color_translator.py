@@ -2,7 +2,7 @@ from codenames.classic.color import ClassicColor
 from codenames.duet.card import DuetColor
 from codenames.generic.card import CardColor
 
-from codenames_parser.common.models import Color
+from codenames_parser.common.utils.models import Color
 
 CODENAMES_BLUE = Color(r=45, g=115, b=170)
 CODENAMES_RED = Color(r=250, g=45, b=45)

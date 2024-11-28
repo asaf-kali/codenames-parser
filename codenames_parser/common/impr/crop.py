@@ -4,14 +4,18 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from codenames_parser.common.align import detect_edges, extract_lines, get_grid_lines
-from codenames_parser.common.debug_util import (
+from codenames_parser.common.impr.align import (
+    detect_edges,
+    extract_lines,
+    get_grid_lines,
+)
+from codenames_parser.common.utils.debug_util import (
     SEPARATOR,
     draw_lines,
     draw_polyline,
     save_debug_image,
 )
-from codenames_parser.common.models import Box, Line, Point
+from codenames_parser.common.utils.models import Box, Line, Point
 
 log = logging.getLogger(__name__)
 

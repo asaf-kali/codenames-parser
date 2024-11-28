@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import platformdirs
 import requests
 
-from codenames_parser.common.models import Box
+from codenames_parser.common.utils.models import Box
 
 DEFAULT_TESSERACT_FOLDER = "/usr/share/tesseract-ocr/4.00/tessdata"
 TESSDATA_REPO = "https://github.com/tesseract-ocr/tessdata"

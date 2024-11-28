@@ -7,9 +7,9 @@ from codenames.generic.card import CardColor
 from codenames.utils.game_type import GameType
 
 from codenames_parser.color_map.color_map_parser import parse_color_map
-from codenames_parser.common.grid_detection import GRID_WIDTH
-from codenames_parser.common.image_reader import read_image
-from codenames_parser.common.logging import configure_logging
+from codenames_parser.common.impr.grid_detection import GRID_WIDTH
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.utils.logging import configure_logging
 
 
 @dataclass

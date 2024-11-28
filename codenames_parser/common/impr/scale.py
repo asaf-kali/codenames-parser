@@ -55,3 +55,7 @@ def downsample_image(image: np.ndarray, factor: float) -> np.ndarray:
     _, width = image.shape[:2]
     dst_width = width // factor
     return resize_image(image, dst_width=dst_width)
+
+
+def has_larger_dimension(image: np.ndarray, other: np.ndarray) -> bool:
+    return image.shape[0] > other.shape[0] or image.shape[1] > other.shape[1]

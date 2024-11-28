@@ -6,8 +6,8 @@ from codenames.generic.board import Board
 from codenames.generic.card import Card
 
 from codenames_parser.board.board_parser import parse_board
-from codenames_parser.common.image_reader import read_image
-from codenames_parser.common.logging import configure_logging
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.utils.logging import configure_logging
 
 
 @dataclass

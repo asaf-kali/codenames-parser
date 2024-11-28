@@ -2,8 +2,8 @@ from typing import Generator
 
 import pytest
 
-from codenames_parser.common.debug_util import set_save_debug_images
-from codenames_parser.common.logging import configure_logging
+from codenames_parser.common.utils.debug_util import set_save_debug_images
+from codenames_parser.common.utils.logging import configure_logging
 
 configure_logging()
 

@@ -10,18 +10,19 @@ from codenames_parser.board.ocr import (
     parse_tesseract_data,
 )
 from codenames_parser.board.template_search import search_template
-from codenames_parser.common.crop import crop_by_box
-from codenames_parser.common.debug_util import (
+from codenames_parser.common.impr.color_manipulation import quantize
+from codenames_parser.common.impr.crop import crop_by_box
+from codenames_parser.common.impr.general import sharpen
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.impr.scale import resize_image
+from codenames_parser.common.resources.resource_manager import get_card_template_path
+from codenames_parser.common.utils.debug_util import (
     SEPARATOR,
     draw_boxes,
     save_debug_image,
     set_debug_context,
 )
-from codenames_parser.common.general import quantize, sharpen
-from codenames_parser.common.image_reader import read_image
-from codenames_parser.common.models import Box, Size
-from codenames_parser.common.scale import resize_image
-from codenames_parser.resources.resource_manager import get_card_template_path
+from codenames_parser.common.utils.models import Box, Size
 
 log = logging.getLogger(__name__)
 

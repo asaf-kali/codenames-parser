@@ -4,13 +4,14 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from codenames_parser.common.align import apply_rotation
-from codenames_parser.common.crop import rotated_crop
-from codenames_parser.common.debug_util import save_debug_image
-from codenames_parser.common.general import border_pad, has_larger_dimension, normalize
-from codenames_parser.common.models import Point
-from codenames_parser.common.scale import downsample_image
-from codenames_parser.common.transform import transform
+from codenames_parser.common.impr.align import apply_rotation
+from codenames_parser.common.impr.color_manipulation import normalize
+from codenames_parser.common.impr.crop import rotated_crop
+from codenames_parser.common.impr.padding import border_pad
+from codenames_parser.common.impr.scale import downsample_image, has_larger_dimension
+from codenames_parser.common.impr.transform import transform
+from codenames_parser.common.utils.debug_util import save_debug_image
+from codenames_parser.common.utils.models import Point
 
 log = logging.getLogger(__name__)
 

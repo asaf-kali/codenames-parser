@@ -4,7 +4,7 @@ from functools import lru_cache
 import cv2
 import numpy as np
 
-from codenames_parser.common.debug_util import SEPARATOR, save_debug_image
+from codenames_parser.common.utils.debug_util import SEPARATOR, save_debug_image
 
 log = logging.getLogger(__name__)
 

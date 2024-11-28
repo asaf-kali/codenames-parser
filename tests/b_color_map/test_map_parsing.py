@@ -7,8 +7,8 @@ from codenames.duet.card import DuetColor
 
 from codenames_parser.color_map.color_map_parser import parse_color_map
 from codenames_parser.color_map.entrypoint import entrypoint
-from codenames_parser.common.debug_util import set_run_id
-from codenames_parser.common.image_reader import read_image
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.utils.debug_util import set_run_id
 from tests.b_color_map.cases import MAP_CASES
 from tests.fixtures import get_fixture_path
 from tests.utils import list_diff, print_diff

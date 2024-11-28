@@ -1,6 +1,6 @@
 import numpy as np
 
-from codenames_parser.common.general import ensure_grayscale, normalize
+from codenames_parser.common.impr.color_manipulation import ensure_grayscale, normalize
 
 
 def calculate_fft(values: np.ndarray) -> np.ndarray:

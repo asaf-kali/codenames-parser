@@ -7,9 +7,9 @@ from codenames.generic.card import Card
 
 from codenames_parser.board.board_parser import parse_board
 from codenames_parser.board.entrypoint import entrypoint
-from codenames_parser.common.debug_util import set_run_id
-from codenames_parser.common.image_reader import read_image
-from codenames_parser.common.scale import downsample_image
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.impr.scale import downsample_image
+from codenames_parser.common.utils.debug_util import set_run_id
 from tests.c_board.cases import (
     BOARD1_CASE,
     BOARD1_TOP_CASE,

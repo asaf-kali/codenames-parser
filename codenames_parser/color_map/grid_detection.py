@@ -7,10 +7,8 @@ from codenames.generic.card import CardColor
 
 from codenames_parser.color_map.color_translator import get_board_colors
 from codenames_parser.color_map.mask import color_distance_mask
-from codenames_parser.common.align import detect_edges
-from codenames_parser.common.debug_util import SEPARATOR, draw_boxes
-from codenames_parser.common.errors import NotEnoughBoxesError
-from codenames_parser.common.grid_detection import (
+from codenames_parser.common.impr.align import detect_edges
+from codenames_parser.common.impr.grid_detection import (
     GRID_HEIGHT,
     GRID_SIZE,
     GRID_WIDTH,
@@ -19,7 +17,9 @@ from codenames_parser.common.grid_detection import (
     filter_non_common_boxes,
     find_boxes,
 )
-from codenames_parser.common.models import Box, Point
+from codenames_parser.common.utils.debug_util import SEPARATOR, draw_boxes
+from codenames_parser.common.utils.errors import NotEnoughBoxesError
+from codenames_parser.common.utils.models import Box, Point
 
 log = logging.getLogger(__name__)
 

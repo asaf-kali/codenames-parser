@@ -10,7 +10,7 @@ from codenames_parser.color_map.color_translator import (
     ColorTranslator,
     get_color_translator,
 )
-from codenames_parser.common.debug_util import SEPARATOR
+from codenames_parser.common.utils.debug_util import SEPARATOR
 
 log = logging.getLogger(__name__)
 

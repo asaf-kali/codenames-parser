@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from codenames_parser.common.base64 import base64_to_image, image_to_base64
-from codenames_parser.common.image_reader import read_image
+from codenames_parser.common.impr.reader import read_image
+from codenames_parser.common.utils.base64 import base64_to_image, image_to_base64
 from tests.fixtures import get_fixture_path
 from tests.utils import list_diff, print_diff
 

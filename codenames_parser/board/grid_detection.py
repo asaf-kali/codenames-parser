@@ -6,13 +6,8 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from codenames_parser.color_map.mask import color_distance_mask
-from codenames_parser.common.align import blur_image
-from codenames_parser.common.debug_util import SEPARATOR, draw_boxes, save_debug_image
-from codenames_parser.common.errors import (
-    GridExtractionFailedError,
-    NotEnoughBoxesError,
-)
-from codenames_parser.common.grid_detection import (
+from codenames_parser.common.impr.align import blur_image
+from codenames_parser.common.impr.grid_detection import (
     GRID_HEIGHT,
     GRID_SIZE,
     GRID_WIDTH,
@@ -20,7 +15,16 @@ from codenames_parser.common.grid_detection import (
     filter_non_common_boxes,
     find_boxes,
 )
-from codenames_parser.common.models import Box, Color, Point
+from codenames_parser.common.utils.debug_util import (
+    SEPARATOR,
+    draw_boxes,
+    save_debug_image,
+)
+from codenames_parser.common.utils.errors import (
+    GridExtractionFailedError,
+    NotEnoughBoxesError,
+)
+from codenames_parser.common.utils.models import Box, Color, Point
 
 log = logging.getLogger(__name__)
 

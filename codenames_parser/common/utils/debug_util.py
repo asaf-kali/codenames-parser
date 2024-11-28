@@ -9,7 +9,7 @@ from typing import Iterable, Sequence
 import cv2
 import numpy as np
 
-from codenames_parser.common.models import P1P2, Box, Color, Line, Point
+from codenames_parser.common.utils.models import P1P2, Box, Color, Line, Point
 
 # Environment variables
 DEBUG_ENV_VAR = "SAVE_DEBUG_IMAGES"

@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 
-from codenames_parser.common.crop import crop_by_box
-from codenames_parser.common.errors import NotEnoughBoxesError
-from codenames_parser.common.models import Box
+from codenames_parser.common.impr.crop import crop_by_box
+from codenames_parser.common.utils.errors import NotEnoughBoxesError
+from codenames_parser.common.utils.models import Box
 
 log = logging.getLogger(__name__)
 GRID_SIDE = 5

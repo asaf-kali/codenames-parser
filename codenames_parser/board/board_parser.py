@@ -4,11 +4,11 @@ import numpy as np
 
 from codenames_parser.board.card_parser import parse_cards
 from codenames_parser.board.grid_detection import extract_boxes
-from codenames_parser.common.align import align_image, apply_rotations
-from codenames_parser.common.crop import crop_by_box
-from codenames_parser.common.debug_util import draw_boxes
-from codenames_parser.common.models import Box
-from codenames_parser.common.scale import scale_down_image
+from codenames_parser.common.impr.align import align_image, apply_rotations
+from codenames_parser.common.impr.crop import crop_by_box
+from codenames_parser.common.impr.scale import scale_down_image
+from codenames_parser.common.utils.debug_util import draw_boxes
+from codenames_parser.common.utils.models import Box
 
 
 def parse_board(image: np.ndarray, language: str) -> list[str]:
