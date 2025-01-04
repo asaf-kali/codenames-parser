@@ -79,16 +79,33 @@ def crop_by_bounds(
     return cropped
 
 
-def crop_by_box(image: np.ndarray, box: Box) -> np.ndarray:
+def crop_by_box(image: np.ndarray, box: Box, pad_out_of_bounds: bool = False) -> np.ndarray:
     """
     Crop the input image according to the given box.
     """
-    if box.x < 0:
-        box.w += box.x
-        box.x = 0
-    if box.y < 0:
-        box.h += box.y
-        box.y = 0
+
+    if pad_out_of_bounds:
+        pad_t, pad_b, pad_l, pad_r = 0, 0, 0, 0
+        if box.x < 0:
+            pad_l = -box.x
+        if box.y < 0:
+            pad_t = -box.y
+        if box.x + box.w > image.shape[1]:
+            pad_r = box.x + box.w - image.shape[1]
+        if box.y + box.h > image.shape[0]:
+            pad_b = box.y + box.h - image.shape[0]
+        image = cv2.copyMakeBorder(image, pad_t, pad_b, pad_l, pad_r, cv2.BORDER_REPLICATE)
+    else:
+        if box.x < 0:
+            box.w += box.x
+            box.x = 0
+        if box.y < 0:
+            box.h += box.y
+            box.y = 0
+        if box.x + box.w > image.shape[1]:
+            box.w = image.shape[1] - box.x
+        if box.y + box.h > image.shape[0]:
+            box.h = image.shape[0] - box.y
     cropped = image[box.y : box.y + box.h, box.x : box.x + box.w]
     # save_debug_image(cropped, title="cropped cell")
     return cropped

@@ -15,7 +15,7 @@ from codenames_parser.common.impr.align import (
     detect_edges,
     extract_lines,
 )
-from codenames_parser.common.impr.color_manipulation import ensure_grayscale, quantize
+from codenames_parser.common.impr.color_manipulation import ensure_grayscale
 from codenames_parser.common.impr.crop import crop_by_box
 from codenames_parser.common.impr.equalization import contrast_limit_equalization
 from codenames_parser.common.impr.general import sharpen
@@ -68,7 +68,7 @@ def _find_first_horizontal_line_above_circle(image: np.ndarray, circle: Circle) 
     box = Box(x=left, y=top, w=right - left, h=bottom - top)
     cropped = crop_by_box(image, box=box)
     lines = _search_for_lines(cropped, min_count=1, max_count=3)
-    log.info(f"Found {len(lines)} lines")
+    log.debug(f"Found {len(lines)} lines")
     draw_lines(image=cropped, lines=lines, title="lines above circle")
     avg_theta = sum(line.theta for line in lines) / len(lines)
     return Line(rho=0, theta=avg_theta)
@@ -79,7 +79,7 @@ def _search_for_lines(image: np.ndarray, min_count: int, max_count: int) -> list
     rho = 1.0
     for _ in range(10):
         lines = extract_lines(edges, rho=rho)
-        log.info(f"Found {len(lines)} lines with rho {rho}")
+        log.debug(f"Found {len(lines)} lines with rho {rho}")
         if min_count <= len(lines) <= max_count:
             return lines
         if len(lines) < min_count:
@@ -97,7 +97,7 @@ def _find_text_section(image: np.ndarray) -> np.ndarray:
     equalized = contrast_limit_equalization(image=image)
     top_line = _find_first_horizontal_line_above_circle(equalized, circle=top_circle)
     rotation_angle = np.rad2deg(top_line.theta) - 90
-    log.debug(f"Card rotation angle: {rotation_angle:.2f}")
+    log.info(f"Card rotation angle: {rotation_angle:.2f}")
     aligned = apply_rotation(image=image, angle_degrees=rotation_angle)
     save_debug_image(aligned, title="aligned")
     # Crop out card
@@ -106,7 +106,7 @@ def _find_text_section(image: np.ndarray) -> np.ndarray:
     left = int(top_circle.center.x - card_width / 2)
     top = int(top_circle.center.y - top_circle.radius * 2)
     card_box = Box(x=left, y=top, w=int(card_width), h=int(card_height))
-    card = crop_by_box(aligned, box=card_box)
+    card = crop_by_box(aligned, box=card_box, pad_out_of_bounds=True)
     save_debug_image(card, title="card")
     text_section = _text_section_crop(card)
     return text_section
@@ -164,11 +164,14 @@ def _text_section_crop(card: np.ndarray) -> np.ndarray:
 
 
 def _process_text_section(text_section: np.ndarray, quantization_k: int = 6) -> np.ndarray:
+    log.debug("Processing text section...")
     resized = resize_image(image=text_section, dst_width=500)
+    # equalized = contrast_limit_equalization(image=resized)
     sharpened = sharpen(image=resized)
-    quantized = quantize(image=sharpened, k=quantization_k)
-    save_debug_image(quantized, title="text section for parsing", important=True)
-    return quantized
+    # quantized = quantize(image=sharpened, k=quantization_k)
+    save_debug_image(sharpened, title="text section for parsing", important=True)
+    log.debug("Text section processed")
+    return sharpened
 
 
 def _extract_text(image: np.ndarray, language: str) -> str:
