@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_board_fixture_path(fixture_file: str, language: str) -> str:
-    return get_fixture_path(f"boards/{language}/{fixture_file}")
+    return get_fixture_path("boards", language, fixture_file)
 
 
 def _test_parse_board(case: ParseBoardTestCase):

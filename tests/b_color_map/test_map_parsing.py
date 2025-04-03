@@ -26,7 +26,7 @@ def _get_fixture_folder_by_color_type(color_type: type[ClassicColor]) -> str:
 
 def _get_color_map_path(fixture_file: str, color_type: type[ClassicColor]) -> str:
     folder = _get_fixture_folder_by_color_type(color_type=color_type)
-    return get_fixture_path(f"color_maps/{folder}/{fixture_file}")
+    return get_fixture_path("color_maps", folder, fixture_file)
 
 
 @pytest.mark.parametrize("fixture_file,expected_colors,color_type", MAP_CASES)

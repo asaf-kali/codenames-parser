@@ -45,6 +45,9 @@ lock:
 lock-check:
 	poetry check --lock
 
+export:
+	poetry export -f requirements.txt --output requirements.txt --without-hashes --with=test --with=lint --with=dev
+
 # Test
 
 test:
